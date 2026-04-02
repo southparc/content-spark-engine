@@ -218,7 +218,38 @@ export default function Campagne() {
         </CardContent>
       </Card>
 
-      {topics.length > 0 && (
+      {/* Bestaande campagnes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Bestaande campagnes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingCampaigns ? (
+            <p className="text-sm text-muted-foreground">Laden...</p>
+          ) : !campaigns?.length ? (
+            <p className="text-sm text-muted-foreground">Nog geen campagnes aangemaakt.</p>
+          ) : (
+            <div className="divide-y">
+              {campaigns.map((c) => {
+                const client = clients?.find((cl) => cl.id === c.client_id);
+                return (
+                  <div key={c.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{c.theme}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {client?.name ?? "Onbekende klant"} · {new Date(c.created_at).toLocaleDateString("nl-NL")}
+                      </p>
+                    </div>
+                    <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">
