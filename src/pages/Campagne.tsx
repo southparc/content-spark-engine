@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -12,8 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle } from "lucide-react";
-import { useClients, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
+import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
+import { useClients, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
 const platformIcons = {
@@ -44,8 +45,46 @@ function generateMockTopics(theme: string, client: MmClient) {
   ];
 }
 
+async function fetchTopicsFromN8n(
+  webhookUrl: string,
+  client: MmClient,
+  theme: string
+): Promise<{ hook: string; platform: string }[]> {
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_name: client.name,
+      doelgroep: client.doelgroep,
+      tone_of_voice: client.tone_of_voice,
+      hashtags: client.hashtags,
+      branding: client.branding,
+      theme,
+      platforms: ["linkedin", "x", "instagram"],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`n8n webhook error: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // n8n kan een array of een object met topics-key teruggeven
+  const topics = Array.isArray(data) ? data : data.topics;
+  if (!Array.isArray(topics) || topics.length === 0) {
+    throw new Error("Geen topics ontvangen van n8n webhook");
+  }
+
+  return topics.map((t: any) => ({
+    hook: t.hook || t.title || t.text || String(t),
+    platform: t.platform || "linkedin",
+  }));
+}
+
 export default function Campagne() {
   const { data: clients, isLoading: loadingClients } = useClients();
+  const { data: settings } = useSettings();
   const createCampaign = useCreateCampaign();
   const createTopics = useCreateTopics();
   const updateTopic = useUpdateTopic();
@@ -53,9 +92,12 @@ export default function Campagne() {
   const [theme, setTheme] = useState("");
   const [topics, setTopics] = useState<MmTopic[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [usedWebhook, setUsedWebhook] = useState(false);
   const { toast } = useToast();
 
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
+  const webhookUrl = settings?.webhook_generate_topics;
+  const hasWebhook = !!webhookUrl?.trim();
 
   const handleGenerate = async () => {
     if (!selectedClient || !theme.trim()) return;
@@ -64,13 +106,39 @@ export default function Campagne() {
       // 1. Create campaign
       const campaign = await createCampaign.mutateAsync({ client_id: selectedClient.id, theme });
 
-      // 2. Generate mock topics and save to DB
-      const mockTopics = generateMockTopics(theme, selectedClient);
+      // 2. Generate topics via n8n webhook or fallback to mock
+      let rawTopics: { hook: string; platform: string }[];
+      let fromWebhook = false;
+
+      if (hasWebhook) {
+        try {
+          rawTopics = await fetchTopicsFromN8n(webhookUrl!, selectedClient, theme);
+          fromWebhook = true;
+        } catch (webhookErr) {
+          console.error("n8n webhook failed, falling back to mock:", webhookErr);
+          toast({
+            title: "n8n webhook mislukt",
+            description: "Fallback naar voorbeeldtopics. Controleer je webhook URL in Instellingen.",
+            variant: "destructive",
+          });
+          rawTopics = generateMockTopics(theme, selectedClient);
+        }
+      } else {
+        rawTopics = generateMockTopics(theme, selectedClient);
+      }
+
+      // 3. Save to DB
       const savedTopics = await createTopics.mutateAsync(
-        mockTopics.map((t) => ({ ...t, campaign_id: campaign.id }))
+        rawTopics.map((t) => ({ ...t, campaign_id: campaign.id }))
       );
       setTopics(savedTopics);
-      toast({ title: "Topics gegenereerd!", description: `${savedTopics.length} topics voor "${theme}"` });
+      setUsedWebhook(fromWebhook);
+      toast({
+        title: fromWebhook ? "AI-topics gegenereerd! 🤖" : "Voorbeeldtopics gegenereerd",
+        description: fromWebhook
+          ? `${savedTopics.length} topics via n8n ontvangen voor "${theme}"`
+          : `${savedTopics.length} voorbeeldtopics voor "${theme}". Stel een n8n webhook in voor AI-topics.`,
+      });
     } catch (err) {
       toast({ title: "Fout", description: "Kon topics niet genereren. Zijn de tabellen aangemaakt?", variant: "destructive" });
     }
