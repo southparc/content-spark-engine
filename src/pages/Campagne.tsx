@@ -84,6 +84,7 @@ async function fetchTopicsFromN8n(
 
 export default function Campagne() {
   const { data: clients, isLoading: loadingClients } = useClients();
+  const { data: campaigns, isLoading: loadingCampaigns } = useCampaigns();
   const { data: settings } = useSettings();
   const createCampaign = useCreateCampaign();
   const createTopics = useCreateTopics();
