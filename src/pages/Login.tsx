@@ -15,11 +15,17 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
+  const ALLOWED_DOMAINS = ["southparc.nl", "burophilip.nl"];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (isSignUp) {
+        const domain = email.split("@")[1]?.toLowerCase();
+        if (!ALLOWED_DOMAINS.includes(domain)) {
+          throw new Error("Registratie is alleen toegestaan voor @southparc.nl en @burophilip.nl");
+        }
         await signUp(email, password);
         toast({ title: "Account aangemaakt", description: "Controleer je email voor verificatie." });
       } else {
