@@ -1,32 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Save, ExternalLink } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Save, ExternalLink, Loader2 } from "lucide-react";
+import { useSettings, useUpdateSetting } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Instellingen() {
+  const { data: settings, isLoading } = useSettings();
+  const updateSetting = useUpdateSetting();
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    n8nBaseUrl: "",
-    webhookGenerateTopics: "",
-    webhookGenerateContent: "",
-    webhookPost: "",
-    creatomateApiKey: "",
-    autoApprove: false,
-  });
+  const [local, setLocal] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
-  const update = (key: string, value: string | boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    if (settings) setLocal(settings);
+  }, [settings]);
+
+  const update = (key: string, value: string) => {
+    setLocal((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    localStorage.setItem("mm_settings", JSON.stringify(settings));
-    toast({ title: "Instellingen opgeslagen" });
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const [key, value] of Object.entries(local)) {
+        if (settings && settings[key] !== value) {
+          await updateSetting.mutateAsync({ key, value });
+        }
+      }
+      toast({ title: "Instellingen opgeslagen" });
+    } catch {
+      toast({ title: "Fout bij opslaan", variant: "destructive" });
+    }
+    setSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -48,35 +69,19 @@ export default function Instellingen() {
         <CardContent className="space-y-4">
           <div>
             <Label>n8n Base URL</Label>
-            <Input
-              value={settings.n8nBaseUrl}
-              onChange={(e) => update("n8nBaseUrl", e.target.value)}
-              placeholder="https://jouw-n8n.app.n8n.cloud"
-            />
+            <Input value={local.n8n_base_url ?? ""} onChange={(e) => update("n8n_base_url", e.target.value)} placeholder="https://jouw-n8n.app.n8n.cloud" />
           </div>
           <div>
             <Label>Webhook: Topics genereren</Label>
-            <Input
-              value={settings.webhookGenerateTopics}
-              onChange={(e) => update("webhookGenerateTopics", e.target.value)}
-              placeholder="https://jouw-n8n.../webhook/generate-topics"
-            />
+            <Input value={local.webhook_generate_topics ?? ""} onChange={(e) => update("webhook_generate_topics", e.target.value)} placeholder="https://jouw-n8n.../webhook/generate-topics" />
           </div>
           <div>
             <Label>Webhook: Content genereren</Label>
-            <Input
-              value={settings.webhookGenerateContent}
-              onChange={(e) => update("webhookGenerateContent", e.target.value)}
-              placeholder="https://jouw-n8n.../webhook/generate-content"
-            />
+            <Input value={local.webhook_generate_content ?? ""} onChange={(e) => update("webhook_generate_content", e.target.value)} placeholder="https://jouw-n8n.../webhook/generate-content" />
           </div>
           <div>
             <Label>Webhook: Posten</Label>
-            <Input
-              value={settings.webhookPost}
-              onChange={(e) => update("webhookPost", e.target.value)}
-              placeholder="https://jouw-n8n.../webhook/post"
-            />
+            <Input value={local.webhook_post ?? ""} onChange={(e) => update("webhook_post", e.target.value)} placeholder="https://jouw-n8n.../webhook/post" />
           </div>
         </CardContent>
       </Card>
@@ -89,12 +94,7 @@ export default function Instellingen() {
         <CardContent>
           <div>
             <Label>API Key</Label>
-            <Input
-              type="password"
-              value={settings.creatomateApiKey}
-              onChange={(e) => update("creatomateApiKey", e.target.value)}
-              placeholder="Jouw Creatomate API key"
-            />
+            <Input type="password" value={local.creatomate_api_key ?? ""} onChange={(e) => update("creatomate_api_key", e.target.value)} placeholder="Jouw Creatomate API key" />
           </div>
         </CardContent>
       </Card>
@@ -108,22 +108,17 @@ export default function Instellingen() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-foreground">Auto-approve</p>
-              <p className="text-xs text-muted-foreground">
-                Sla de review-stap over en post direct na generatie
-              </p>
+              <p className="text-xs text-muted-foreground">Sla de review-stap over en post direct na generatie</p>
             </div>
-            <Switch
-              checked={settings.autoApprove}
-              onCheckedChange={(v) => update("autoApprove", v)}
-            />
+            <Switch checked={local.auto_approve === "true"} onCheckedChange={(v) => update("auto_approve", v ? "true" : "false")} />
           </div>
         </CardContent>
       </Card>
 
       <Separator />
 
-      <Button onClick={handleSave}>
-        <Save className="h-4 w-4 mr-2" />
+      <Button onClick={handleSave} disabled={saving}>
+        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
         Opslaan
       </Button>
     </div>
