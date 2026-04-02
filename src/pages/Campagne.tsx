@@ -195,7 +195,14 @@ export default function Campagne() {
             </div>
           )}
 
-          <Button
+          <div className="flex items-center gap-2 text-xs">
+            {hasWebhook ? (
+              <span className="flex items-center gap-1 text-primary"><Wifi className="h-3 w-3" /> n8n webhook actief</span>
+            ) : (
+              <span className="flex items-center gap-1 text-muted-foreground"><WifiOff className="h-3 w-3" /> Geen webhook — voorbeeldtopics worden gebruikt</span>
+            )}
+          </div>
+
             onClick={handleGenerate}
             disabled={!selectedClient || !theme.trim() || generating}
             className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
