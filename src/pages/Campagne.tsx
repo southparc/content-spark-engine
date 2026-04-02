@@ -204,6 +204,7 @@ export default function Campagne() {
           </div>
 
           <Button
+            onClick={handleGenerate}
             disabled={!selectedClient || !theme.trim() || generating}
             className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
           >
