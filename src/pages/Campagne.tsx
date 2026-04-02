@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
-import { useClients, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
+import { useClients, useCampaigns, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
 const platformIcons = {
