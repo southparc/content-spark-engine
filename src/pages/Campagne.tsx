@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
-import { useClients, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
+import { useClients, useCampaigns, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
 const platformIcons = {
@@ -84,6 +84,7 @@ async function fetchTopicsFromN8n(
 
 export default function Campagne() {
   const { data: clients, isLoading: loadingClients } = useClients();
+  const { data: campaigns, isLoading: loadingCampaigns } = useCampaigns();
   const { data: settings } = useSettings();
   const createCampaign = useCreateCampaign();
   const createTopics = useCreateTopics();
@@ -214,6 +215,37 @@ export default function Campagne() {
               <><Sparkles className="h-4 w-4 mr-2" /> Genereer topics</>
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Bestaande campagnes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Bestaande campagnes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingCampaigns ? (
+            <p className="text-sm text-muted-foreground">Laden...</p>
+          ) : !campaigns?.length ? (
+            <p className="text-sm text-muted-foreground">Nog geen campagnes aangemaakt.</p>
+          ) : (
+            <div className="divide-y">
+              {campaigns.map((c) => {
+                const client = clients?.find((cl) => cl.id === c.client_id);
+                return (
+                  <div key={c.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{c.theme}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {client?.name ?? "Onbekende klant"} · {new Date(c.created_at).toLocaleDateString("nl-NL")}
+                      </p>
+                    </div>
+                    <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
