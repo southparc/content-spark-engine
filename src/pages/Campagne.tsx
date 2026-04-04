@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useClients, useCampaigns, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -95,6 +96,7 @@ export default function Campagne() {
   const [generating, setGenerating] = useState(false);
   const [usedWebhook, setUsedWebhook] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
   const webhookUrl = settings?.webhook_generate_topics;
@@ -255,7 +257,14 @@ export default function Campagne() {
             <h2 className="text-lg font-semibold text-foreground">
               Gegenereerde topics ({approvedCount} geselecteerd)
             </h2>
-            <Button disabled={approvedCount === 0} className="gradient-primary border-0 text-primary-foreground hover:opacity-90">
+            <Button
+              disabled={approvedCount === 0}
+              className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
+              onClick={() => {
+                const campaignId = topics[0]?.campaign_id;
+                if (campaignId) navigate(`/content?campaign=${campaignId}`);
+              }}
+            >
               Genereer content ({approvedCount})
             </Button>
           </div>

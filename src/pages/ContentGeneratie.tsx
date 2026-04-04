@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,7 +54,8 @@ export default function ContentGeneratie() {
   const updateTopic = useUpdateTopic();
   const { toast } = useToast();
 
-  const [selectedCampaignId, setSelectedCampaignId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [selectedCampaignId, setSelectedCampaignId] = useState(searchParams.get("campaign") || "");
   const { data: topics, refetch: refetchTopics } = useTopics(selectedCampaignId || undefined);
   const [generating, setGenerating] = useState(false);
   const [previewTopic, setPreviewTopic] = useState<MmTopic | null>(null);
