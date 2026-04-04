@@ -257,7 +257,14 @@ export default function Campagne() {
             <h2 className="text-lg font-semibold text-foreground">
               Gegenereerde topics ({approvedCount} geselecteerd)
             </h2>
-            <Button disabled={approvedCount === 0} className="gradient-primary border-0 text-primary-foreground hover:opacity-90">
+            <Button
+              disabled={approvedCount === 0}
+              className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
+              onClick={() => {
+                const campaignId = topics[0]?.campaign_id;
+                if (campaignId) navigate(`/content?campaign=${campaignId}`);
+              }}
+            >
               Genereer content ({approvedCount})
             </Button>
           </div>

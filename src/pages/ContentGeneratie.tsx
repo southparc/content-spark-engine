@@ -54,7 +54,8 @@ export default function ContentGeneratie() {
   const updateTopic = useUpdateTopic();
   const { toast } = useToast();
 
-  const [selectedCampaignId, setSelectedCampaignId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [selectedCampaignId, setSelectedCampaignId] = useState(searchParams.get("campaign") || "");
   const { data: topics, refetch: refetchTopics } = useTopics(selectedCampaignId || undefined);
   const [generating, setGenerating] = useState(false);
   const [previewTopic, setPreviewTopic] = useState<MmTopic | null>(null);
