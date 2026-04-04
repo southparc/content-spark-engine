@@ -96,6 +96,7 @@ export default function Campagne() {
   const [generating, setGenerating] = useState(false);
   const [usedWebhook, setUsedWebhook] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
   const webhookUrl = settings?.webhook_generate_topics;
