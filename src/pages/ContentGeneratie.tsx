@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, FileText, Linkedin, Twitter, Instagram, Send, Eye, CheckCircle2 } from "lucide-react";
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
