@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { useClients, useCampaigns, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -51,27 +52,23 @@ async function fetchTopicsFromN8n(
   client: MmClient,
   theme: string
 ): Promise<{ hook: string; platform: string }[]> {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_name: client.name,
-      doelgroep: client.doelgroep,
-      tone_of_voice: client.tone_of_voice,
-      hashtags: client.hashtags,
-      branding: client.branding,
-      theme,
-      platforms: ["linkedin", "x", "instagram"],
-    }),
+  const { data, error } = await supabase.functions.invoke("webhook-proxy", {
+    body: {
+      webhook_url: webhookUrl,
+      payload: {
+        client_name: client.name,
+        doelgroep: client.doelgroep,
+        tone_of_voice: client.tone_of_voice,
+        hashtags: client.hashtags,
+        branding: client.branding,
+        theme,
+        platforms: ["linkedin", "x", "instagram"],
+      },
+    },
   });
 
-  if (!response.ok) {
-    throw new Error(`n8n webhook error: ${response.status}`);
-  }
+  if (error) throw error;
 
-  const data = await response.json();
-
-  // n8n kan een array of een object met topics-key teruggeven
   const topics = Array.isArray(data) ? data : data.topics;
   if (!Array.isArray(topics) || topics.length === 0) {
     throw new Error("Geen topics ontvangen van n8n webhook");

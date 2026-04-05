@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, Linkedin, Twitter, Instagram, FileText, CheckCircle2, Clock } from "lucide-react";
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -26,19 +27,20 @@ async function publishViaN8n(
   topic: MmTopic,
   clientName: string
 ): Promise<void> {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      topic_id: topic.id,
-      hook: topic.hook,
-      platform: topic.platform,
-      content: topic.generated_content,
-      media_url: topic.media_url,
-      client_name: clientName,
-    }),
+  const { error } = await supabase.functions.invoke("webhook-proxy", {
+    body: {
+      webhook_url: webhookUrl,
+      payload: {
+        topic_id: topic.id,
+        hook: topic.hook,
+        platform: topic.platform,
+        content: topic.generated_content,
+        media_url: topic.media_url,
+        client_name: clientName,
+      },
+    },
   });
-  if (!response.ok) throw new Error(`Publicatie webhook error: ${response.status}`);
+  if (error) throw error;
 }
 
 export default function Publiceren() {
