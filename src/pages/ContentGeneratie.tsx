@@ -32,19 +32,19 @@ async function fetchContentFromN8n(
   topic: MmTopic,
   clientName: string
 ): Promise<string> {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      topic_id: topic.id,
-      hook: topic.hook,
-      platform: topic.platform,
-      client_name: clientName,
-    }),
+  const { data: result, error } = await supabase.functions.invoke("webhook-proxy", {
+    body: {
+      webhook_url: webhookUrl,
+      payload: {
+        topic_id: topic.id,
+        hook: topic.hook,
+        platform: topic.platform,
+        client_name: clientName,
+      },
+    },
   });
-  if (!response.ok) throw new Error(`Webhook error: ${response.status}`);
-  const data = await response.json();
-  return data.content || data.text || data.generated_content || JSON.stringify(data);
+  if (error) throw error;
+  return result.content || result.text || result.generated_content || JSON.stringify(result);
 }
 
 export default function ContentGeneratie() {
