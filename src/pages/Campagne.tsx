@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/select";
 import { Sparkles, Linkedin, Twitter, Instagram, Loader2, CheckCircle2, XCircle, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useClients, useCampaigns, useSettings, useCreateCampaign, useCreateTopics, useUpdateTopic, type MmClient, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage, invokeN8nWebhook, parseTopicsResponse } from "@/lib/n8n";
 
 const platformIcons = {
   linkedin: Linkedin,
@@ -52,32 +52,20 @@ async function fetchTopicsFromN8n(
   client: MmClient,
   theme: string
 ): Promise<{ hook: string; platform: string }[]> {
-  const { data, error } = await supabase.functions.invoke("webhook-proxy", {
-    body: {
-      webhook_url: webhookUrl,
-      payload: {
-        client_name: client.name,
-        doelgroep: client.doelgroep,
-        tone_of_voice: client.tone_of_voice,
-        hashtags: client.hashtags,
-        branding: client.branding,
-        theme,
-        platforms: ["linkedin", "x", "instagram"],
-      },
+  const data = await invokeN8nWebhook({
+    webhookUrl,
+    payload: {
+      client_name: client.name,
+      doelgroep: client.doelgroep,
+      tone_of_voice: client.tone_of_voice,
+      hashtags: client.hashtags,
+      branding: client.branding,
+      theme,
+      platforms: ["linkedin", "x", "instagram"],
     },
   });
 
-  if (error) throw error;
-
-  const topics = Array.isArray(data) ? data : data.topics;
-  if (!Array.isArray(topics) || topics.length === 0) {
-    throw new Error("Geen topics ontvangen van n8n webhook");
-  }
-
-  return topics.map((t: any) => ({
-    hook: t.hook || t.title || t.text || String(t),
-    platform: t.platform || "linkedin",
-  }));
+  return parseTopicsResponse(data);
 }
 
 export default function Campagne() {
@@ -118,7 +106,7 @@ export default function Campagne() {
           console.error("n8n webhook failed, falling back to mock:", webhookErr);
           toast({
             title: "n8n webhook mislukt",
-            description: "Fallback naar voorbeeldtopics. Controleer je webhook URL in Instellingen.",
+            description: `Fallback naar voorbeeldtopics. ${getErrorMessage(webhookErr)}`,
             variant: "destructive",
           });
           rawTopics = generateMockTopics(theme, selectedClient);

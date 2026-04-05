@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, Linkedin, Twitter, Instagram, FileText, CheckCircle2, Clock } from "lucide-react";
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getErrorMessage, invokeN8nWebhook } from "@/lib/n8n";
 import {
   Select,
   SelectContent,
@@ -25,22 +25,22 @@ const platformIcons: Record<string, any> = {
 async function publishViaN8n(
   webhookUrl: string,
   topic: MmTopic,
-  clientName: string
+  clientName: string,
+  campaignTheme?: string,
 ): Promise<void> {
-  const { error } = await supabase.functions.invoke("webhook-proxy", {
-    body: {
-      webhook_url: webhookUrl,
-      payload: {
-        topic_id: topic.id,
-        hook: topic.hook,
-        platform: topic.platform,
-        content: topic.generated_content,
-        media_url: topic.media_url,
-        client_name: clientName,
-      },
+  await invokeN8nWebhook({
+    webhookUrl,
+    allowEmptyResponse: true,
+    payload: {
+      topic_id: topic.id,
+      hook: topic.hook,
+      platform: topic.platform,
+      content: topic.generated_content,
+      media_url: topic.media_url,
+      client_name: clientName,
+      campaign_theme: campaignTheme,
     },
   });
-  if (error) throw error;
 }
 
 export default function Publiceren() {
@@ -87,7 +87,7 @@ export default function Publiceren() {
 
     for (const topic of toPublish) {
       try {
-        await publishViaN8n(webhookUrl!, topic, clientName);
+        await publishViaN8n(webhookUrl!, topic, clientName, selectedCampaign?.theme);
         await updateTopic.mutateAsync({ id: topic.id, posted_at: new Date().toISOString() });
         success++;
       } catch (err) {
@@ -100,7 +100,7 @@ export default function Publiceren() {
     setPublishing(false);
     toast({
       title: `${success}/${toPublish.length} gepubliceerd`,
-      description: success === toPublish.length ? "Alle posts zijn verstuurd!" : "Sommige posts zijn mislukt.",
+      description: success === toPublish.length ? "Alle posts zijn verstuurd!" : getErrorMessage(new Error("Sommige posts zijn mislukt in n8n of bij het opslaan.")),
     });
   };
 

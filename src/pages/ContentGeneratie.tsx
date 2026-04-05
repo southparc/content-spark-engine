@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, Linkedin, Twitter, Instagram, Send, Eye, CheckCircle2 } from "lucide-react";
+import { Loader2, FileText, Linkedin, Twitter, Instagram, Eye } from "lucide-react";
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage, invokeN8nWebhook, parseContentResponse } from "@/lib/n8n";
 import {
   Select,
   SelectContent,
@@ -31,21 +31,31 @@ const platformIcons: Record<string, any> = {
 async function fetchContentFromN8n(
   webhookUrl: string,
   topic: MmTopic,
-  clientName: string
+  context: {
+    clientName: string;
+    campaignTheme?: string;
+    doelgroep?: string;
+    toneOfVoice?: string;
+    hashtags?: string;
+    branding?: string;
+  }
 ): Promise<string> {
-  const { data: result, error } = await supabase.functions.invoke("webhook-proxy", {
-    body: {
-      webhook_url: webhookUrl,
-      payload: {
-        topic_id: topic.id,
-        hook: topic.hook,
-        platform: topic.platform,
-        client_name: clientName,
-      },
+  const result = await invokeN8nWebhook({
+    webhookUrl,
+    payload: {
+      topic_id: topic.id,
+      hook: topic.hook,
+      platform: topic.platform,
+      client_name: context.clientName,
+      campaign_theme: context.campaignTheme,
+      doelgroep: context.doelgroep,
+      tone_of_voice: context.toneOfVoice,
+      hashtags: context.hashtags,
+      branding: context.branding,
     },
   });
-  if (error) throw error;
-  return result.content || result.text || result.generated_content || JSON.stringify(result);
+
+  return parseContentResponse(result);
 }
 
 export default function ContentGeneratie() {
@@ -67,7 +77,8 @@ export default function ContentGeneratie() {
   const hasWebhook = !!webhookUrl?.trim();
 
   const selectedCampaign = campaigns?.find((c) => c.id === selectedCampaignId);
-  const clientName = clients?.find((c) => c.id === selectedCampaign?.client_id)?.name || "";
+  const selectedClient = clients?.find((c) => c.id === selectedCampaign?.client_id);
+  const clientName = selectedClient?.name || "";
 
   const handleGenerateContent = async () => {
     if (!hasWebhook) {
@@ -81,13 +92,23 @@ export default function ContentGeneratie() {
 
     setGenerating(true);
     let success = 0;
+    const failures: string[] = [];
+
     for (const topic of approvedTopics) {
       if (topic.generated_content) { success++; continue; }
       try {
-        const content = await fetchContentFromN8n(webhookUrl!, topic, clientName);
+        const content = await fetchContentFromN8n(webhookUrl!, topic, {
+          clientName,
+          campaignTheme: selectedCampaign?.theme,
+          doelgroep: selectedClient?.doelgroep,
+          toneOfVoice: selectedClient?.tone_of_voice,
+          hashtags: selectedClient?.hashtags,
+          branding: selectedClient?.branding,
+        });
         await updateTopic.mutateAsync({ id: topic.id, generated_content: content });
         success++;
       } catch (err) {
+        failures.push(`${topic.hook}: ${getErrorMessage(err)}`);
         console.error(`Content generatie mislukt voor topic ${topic.id}:`, err);
       }
     }
@@ -95,7 +116,10 @@ export default function ContentGeneratie() {
     setGenerating(false);
     toast({
       title: `${success}/${approvedTopics.length} posts gegenereerd`,
-      description: success === approvedTopics.length ? "Alle content is klaar!" : "Sommige posts zijn mislukt. Probeer opnieuw.",
+      description: success === approvedTopics.length
+        ? "Alle content is klaar!"
+        : failures[0] || "Sommige posts zijn mislukt. Probeer opnieuw.",
+      variant: success === approvedTopics.length ? "default" : "destructive",
     });
   };
 
