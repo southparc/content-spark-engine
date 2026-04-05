@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, FileText, Linkedin, Twitter, Instagram, Send, Eye, CheckCircle2 } from "lucide-react";
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -33,18 +33,18 @@ async function fetchContentFromN8n(
   topic: MmTopic,
   clientName: string
 ): Promise<string> {
-  const { data: result, error } = await supabase.functions.invoke("webhook-proxy", {
-    body: {
-      webhook_url: webhookUrl,
-      payload: {
-        topic_id: topic.id,
-        hook: topic.hook,
-        platform: topic.platform,
-        client_name: clientName,
-      },
-    },
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topic_id: topic.id,
+      hook: topic.hook,
+      platform: topic.platform,
+      client_name: clientName,
+    }),
   });
-  if (error) throw error;
+  if (!response.ok) throw new Error(`Webhook returned ${response.status}`);
+  const result = await response.json();
   return result.content || result.text || result.generated_content || JSON.stringify(result);
 }
 
