@@ -41,22 +41,26 @@ async function fetchContentFromN8n(
     branding?: string;
   }
 ): Promise<string> {
-  const result = await invokeN8nWebhook({
-    webhookUrl,
-    payload: {
-      topic_id: topic.id,
-      hook: topic.hook,
-      platform: topic.platform,
-      client_name: context.clientName,
-      campaign_theme: context.campaignTheme,
-      doelgroep: context.doelgroep,
-      tone_of_voice: context.toneOfVoice,
-      hashtags: context.hashtags,
-      branding: context.branding,
+  const { data, error } = await supabase.functions.invoke("webhook-proxy", {
+    body: {
+      webhook_url: webhookUrl,
+      payload: {
+        topic_id: topic.id,
+        hook: topic.hook,
+        platform: topic.platform,
+        client_name: context.clientName,
+        campaign_theme: context.campaignTheme,
+        doelgroep: context.doelgroep,
+        tone_of_voice: context.toneOfVoice,
+        hashtags: context.hashtags,
+        branding: context.branding,
+      },
     },
   });
 
-  return parseContentResponse(result);
+  if (error) throw new Error(error.message || "Webhook proxy fout");
+
+  return parseContentResponse(data);
 }
 
 export default function ContentGeneratie() {
