@@ -7,7 +7,8 @@ import { Loader2, FileText, Linkedin, Twitter, Instagram, Eye } from "lucide-rea
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage, invokeN8nWebhook, parseContentResponse } from "@/lib/n8n";
+import { getErrorMessage, parseContentResponse } from "@/lib/n8n";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
