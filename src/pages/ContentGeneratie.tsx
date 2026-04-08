@@ -7,8 +7,7 @@ import { Loader2, FileText, Linkedin, Twitter, Instagram, Eye } from "lucide-rea
 import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } from "@/hooks/use-marketing-data";
 import { useClients } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage, parseContentResponse } from "@/lib/n8n";
-import { supabase } from "@/integrations/supabase/client";
+import { getErrorMessage, invokeN8nWebhook, parseContentResponse } from "@/lib/n8n";
 import {
   Select,
   SelectContent,
@@ -41,24 +40,20 @@ async function fetchContentFromN8n(
     branding?: string;
   }
 ): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("webhook-proxy", {
-    body: {
-      webhook_url: webhookUrl,
-      payload: {
-        topic_id: topic.id,
-        hook: topic.hook,
-        platform: topic.platform,
-        client_name: context.clientName,
-        campaign_theme: context.campaignTheme,
-        doelgroep: context.doelgroep,
-        tone_of_voice: context.toneOfVoice,
-        hashtags: context.hashtags,
-        branding: context.branding,
-      },
+  const data = await invokeN8nWebhook({
+    webhookUrl,
+    payload: {
+      topic_id: topic.id,
+      hook: topic.hook,
+      platform: topic.platform,
+      client_name: context.clientName,
+      campaign_theme: context.campaignTheme,
+      doelgroep: context.doelgroep,
+      tone_of_voice: context.toneOfVoice,
+      hashtags: context.hashtags,
+      branding: context.branding,
     },
   });
-
-  if (error) throw new Error(error.message || "Webhook proxy fout");
 
   return parseContentResponse(data);
 }
