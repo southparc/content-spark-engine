@@ -50,7 +50,7 @@ function parseTrendingResponse(value: unknown): TrendingTopic[] {
           }
           return null;
         })
-        .filter((t): t is TrendingTopic => t !== null);
+        .filter((t): t is TrendingTopic => t != null);
     }
     return [];
   };
