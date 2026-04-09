@@ -83,6 +83,10 @@ export default function Instellingen() {
             <Label>Webhook: Posten</Label>
             <Input value={local.webhook_post ?? ""} onChange={(e) => update("webhook_post", e.target.value)} placeholder="https://jouw-n8n.../webhook/post" />
           </div>
+          <div>
+            <Label>Webhook: Trending topics</Label>
+            <Input value={local.webhook_trending_topics ?? ""} onChange={(e) => update("webhook_trending_topics", e.target.value)} placeholder="https://jouw-n8n.../webhook/trending-topics" />
+          </div>
         </CardContent>
       </Card>
 

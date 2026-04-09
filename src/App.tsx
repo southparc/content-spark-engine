@@ -16,6 +16,9 @@ import Instellingen from "@/pages/Instellingen";
 import ContentKalender from "@/pages/ContentKalender";
 import Analytics from "@/pages/Analytics";
 import MediaLibrary from "@/pages/MediaLibrary";
+import CompetitorMonitoring from "@/pages/CompetitorMonitoring";
+import ApprovalWorkflow from "@/pages/ApprovalWorkflow";
+import RecurringCampaigns from "@/pages/RecurringCampaigns";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +41,9 @@ const App = () => (
                 <Route path="/kalender" element={<ContentKalender />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/media" element={<MediaLibrary />} />
+                <Route path="/trends" element={<CompetitorMonitoring />} />
+                <Route path="/goedkeuring" element={<ApprovalWorkflow />} />
+                <Route path="/recurring" element={<RecurringCampaigns />} />
                 <Route path="/geschiedenis" element={<Geschiedenis />} />
                 <Route path="/instellingen" element={<Instellingen />} />
                 <Route path="*" element={<NotFound />} />
