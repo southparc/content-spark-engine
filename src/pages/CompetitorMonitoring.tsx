@@ -35,7 +35,7 @@ function parseTrendingResponse(value: unknown): TrendingTopic[] {
   const tryParse = (v: unknown): TrendingTopic[] => {
     if (Array.isArray(v)) {
       return v
-        .map((item) => {
+        .map((item): TrendingTopic | null => {
           if (typeof item === "string") return { topic: item, platform: "linkedin" };
           if (typeof item === "object" && item !== null) {
             const obj = item as Record<string, unknown>;
