@@ -28,7 +28,9 @@ export interface MmTopic {
   hook: string;
   platform: "linkedin" | "x" | "instagram";
   status: "pending" | "approved" | "rejected";
+  content_format: "post" | "carousel" | "thread" | "video" | "poll" | null;
   generated_content: string | null;
+  variant_of: string | null;
   media_url: string | null;
   posted_at: string | null;
   created_at: string;
