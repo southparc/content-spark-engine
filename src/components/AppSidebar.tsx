@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +22,9 @@ const navItems = [
   { title: "Campagne", url: "/campagne", icon: Sparkles },
   { title: "Content", url: "/content", icon: FileText },
   { title: "Publiceren", url: "/publiceren", icon: Send },
+  { title: "Kalender", url: "/kalender", icon: Calendar },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Media", url: "/media", icon: Image },
   { title: "Geschiedenis", url: "/geschiedenis", icon: History },
   { title: "Instellingen", url: "/instellingen", icon: Settings },
 ];

@@ -13,6 +13,9 @@ import ContentGeneratie from "@/pages/ContentGeneratie";
 import Publiceren from "@/pages/Publiceren";
 import Geschiedenis from "@/pages/Geschiedenis";
 import Instellingen from "@/pages/Instellingen";
+import ContentKalender from "@/pages/ContentKalender";
+import Analytics from "@/pages/Analytics";
+import MediaLibrary from "@/pages/MediaLibrary";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +35,9 @@ const App = () => (
                 <Route path="/campagne" element={<Campagne />} />
                 <Route path="/content" element={<ContentGeneratie />} />
                 <Route path="/publiceren" element={<Publiceren />} />
+                <Route path="/kalender" element={<ContentKalender />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/media" element={<MediaLibrary />} />
                 <Route path="/geschiedenis" element={<Geschiedenis />} />
                 <Route path="/instellingen" element={<Instellingen />} />
                 <Route path="*" element={<NotFound />} />

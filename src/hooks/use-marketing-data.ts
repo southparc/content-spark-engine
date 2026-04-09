@@ -28,7 +28,9 @@ export interface MmTopic {
   hook: string;
   platform: "linkedin" | "x" | "instagram";
   status: "pending" | "approved" | "rejected";
+  content_format: "post" | "carousel" | "thread" | "video" | "poll" | null;
   generated_content: string | null;
+  variant_of: string | null;
   media_url: string | null;
   posted_at: string | null;
   created_at: string;
@@ -39,6 +41,16 @@ export interface MmSetting {
   key: string;
   value: string;
   updated_at: string;
+}
+
+export interface MmMediaItem {
+  id: string;
+  client_id: string;
+  url: string;
+  type: "image" | "video" | "carousel";
+  alt_text: string | null;
+  tags: string | null;
+  created_at: string;
 }
 
 // ---- Clients ----
@@ -155,6 +167,59 @@ export function useUpdateTopic() {
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_topics"] }),
+  });
+}
+
+// ---- All Topics (across campaigns) ----
+export function useAllTopics() {
+  return useQuery({
+    queryKey: ["mm_topics_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mm_topics")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as MmTopic[];
+    },
+  });
+}
+
+// ---- Media Library ----
+export function useMediaItems() {
+  return useQuery({
+    queryKey: ["mm_media"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mm_media")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as MmMediaItem[];
+    },
+  });
+}
+
+export function useCreateMediaItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (item: Omit<MmMediaItem, "id" | "created_at">) => {
+      const { data, error } = await supabase.from("mm_media").insert(item).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_media"] }),
+  });
+}
+
+export function useDeleteMediaItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("mm_media").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_media"] }),
   });
 }
 
