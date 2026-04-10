@@ -53,33 +53,21 @@ export async function invokeN8nWebhook({
   payload: Record<string, unknown>;
   allowEmptyResponse?: boolean;
 }): Promise<unknown> {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+  const { data, error } = await supabase.functions.invoke("webhook-proxy", {
+    body: { webhook_url: webhookUrl, payload },
   });
 
-  const raw = await response.text();
-
-  if (!response.ok) {
-    throw new Error(raw.trim() || `Webhook gaf status ${response.status}`);
+  if (error) {
+    throw new Error(error.message || `Webhook proxy gaf een fout`);
   }
 
-  if (!raw.trim()) {
-    if (allowEmptyResponse) return null;
-
+  if (!data && !allowEmptyResponse) {
     throw new Error(
       'n8n gaf een lege response terug. Voeg op dit pad een "Respond to Webhook" node toe die JSON terugstuurt.',
     );
   }
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return raw;
-  }
+  return data;
 }
 
 export function parseTopicsResponse(value: unknown): N8nTopicDraft[] {
