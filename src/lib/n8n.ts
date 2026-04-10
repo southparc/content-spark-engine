@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface N8nTopicDraft {
   hook: string;
   platform: "linkedin" | "x" | "instagram";
