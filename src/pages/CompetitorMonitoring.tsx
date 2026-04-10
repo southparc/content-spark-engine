@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, TrendingUp, Lightbulb, ExternalLink, Linkedin, Twitter, Instagram, Search, Sparkles } from "lucide-react";
+import { Loader2, TrendingUp, Lightbulb, ExternalLink, Linkedin, Twitter, Instagram, Search } from "lucide-react";
 import { useClients, useSettings } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -81,39 +80,22 @@ export default function CompetitorMonitoring() {
   const hasWebhook = !!webhookUrl?.trim();
 
   const handleFetchTrends = async () => {
+    if (!hasWebhook) return;
     setLoading(true);
     try {
-      let parsed: TrendingTopic[] = [];
-
-      if (hasWebhook) {
-        // Use n8n webhook if configured
-        const data = await invokeN8nWebhook({
-          webhookUrl: webhookUrl!,
-          payload: {
-            client_name: selectedClient?.name || "",
-            doelgroep: selectedClient?.doelgroep || "",
-            branding: selectedClient?.branding || "",
-            niche: niche || selectedClient?.doelgroep || "marketing",
-            platforms: ["linkedin", "x", "instagram"],
-          },
-        });
-        parsed = parseTrendingResponse(data);
-      } else {
-        // Use AI edge function
-        const { data, error } = await supabase.functions.invoke("generate-trends", {
-          body: {
-            niche: niche || "marketing",
-            client_name: selectedClient?.name || "",
-            doelgroep: selectedClient?.doelgroep || "",
-            platforms: ["linkedin", "x", "instagram"],
-          },
-        });
-        if (error) throw error;
-        parsed = parseTrendingResponse(data);
-      }
-
+      const data = await invokeN8nWebhook({
+        webhookUrl: webhookUrl!,
+        payload: {
+          client_name: selectedClient?.name || "",
+          doelgroep: selectedClient?.doelgroep || "",
+          branding: selectedClient?.branding || "",
+          niche: niche || selectedClient?.doelgroep || "marketing",
+          platforms: ["linkedin", "x", "instagram"],
+        },
+      });
+      const parsed = parseTrendingResponse(data);
       if (parsed.length === 0) {
-        toast({ title: "Geen trends gevonden", description: "Er werden geen bruikbare trending topics gegenereerd.", variant: "destructive" });
+        toast({ title: "Geen trends gevonden", description: "n8n gaf geen bruikbare trending topics terug.", variant: "destructive" });
       } else {
         setTrends(parsed);
         toast({ title: `${parsed.length} trending topics gevonden!` });
@@ -166,19 +148,21 @@ export default function CompetitorMonitoring() {
 
           <Button
             onClick={handleFetchTrends}
-            disabled={loading}
+            disabled={loading || !hasWebhook}
             className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
           >
             {loading ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Trends ophalen...</>
             ) : (
-              <><Sparkles className="h-4 w-4 mr-2" /> Haal trending topics op</>
+              <><TrendingUp className="h-4 w-4 mr-2" /> Haal trending topics op</>
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground">
-            {hasWebhook ? "📡 Via n8n webhook" : "✨ Via AI (Lovable AI)"}
-          </p>
+          {!hasWebhook && (
+            <p className="text-xs text-muted-foreground">
+              ⚠️ Stel eerst een webhook in bij Instellingen → "Webhook: Trending topics"
+            </p>
+          )}
         </CardContent>
       </Card>
 
