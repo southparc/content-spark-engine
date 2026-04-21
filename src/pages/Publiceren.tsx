@@ -25,8 +25,10 @@ const platformIcons: Record<string, any> = {
 async function publishViaN8n(
   webhookUrl: string,
   topic: MmTopic,
+  clientId: string,
   clientName: string,
   bufferChannelId: string,
+  bufferProfileId: string,
   campaignTheme?: string,
 ): Promise<void> {
   await invokeN8nWebhook({
@@ -34,6 +36,7 @@ async function publishViaN8n(
     allowEmptyResponse: true,
     payload: {
       topic_id: topic.id,
+      client_id: clientId,
       hook: topic.hook,
       platform: topic.platform,
       content: topic.generated_content,
@@ -41,6 +44,7 @@ async function publishViaN8n(
       client_name: clientName,
       campaign_theme: campaignTheme,
       buffer_channel_id: bufferChannelId,
+      buffer_profile_id: bufferProfileId,
     },
   });
 }
