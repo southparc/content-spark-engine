@@ -26,6 +26,7 @@ async function publishViaN8n(
   webhookUrl: string,
   topic: MmTopic,
   clientName: string,
+  bufferChannelId: string,
   campaignTheme?: string,
 ): Promise<void> {
   await invokeN8nWebhook({
@@ -39,8 +40,20 @@ async function publishViaN8n(
       media_url: topic.media_url,
       client_name: clientName,
       campaign_theme: campaignTheme,
+      buffer_channel_id: bufferChannelId,
     },
   });
+}
+
+function getBufferChannelId(
+  settings: Record<string, string> | undefined,
+  platform: MmTopic["platform"],
+): string {
+  if (!settings) return "";
+  if (platform === "linkedin") return settings.buffer_channel_linkedin ?? "";
+  if (platform === "x") return settings.buffer_channel_x ?? "";
+  if (platform === "instagram") return settings.buffer_channel_instagram ?? "";
+  return "";
 }
 
 export default function Publiceren() {
@@ -84,15 +97,30 @@ export default function Publiceren() {
     setPublishing(true);
     let success = 0;
     const toPublish = readyTopics.filter((t) => selectedIds.has(t.id));
+    const missingChannels = new Set<string>();
 
     for (const topic of toPublish) {
+      const channelId = getBufferChannelId(settings, topic.platform);
+      if (!channelId) {
+        missingChannels.add(topic.platform);
+        console.warn(`Geen Buffer channel-ID voor platform ${topic.platform}, topic ${topic.id} overgeslagen.`);
+        continue;
+      }
       try {
-        await publishViaN8n(webhookUrl!, topic, clientName, selectedCampaign?.theme);
+        await publishViaN8n(webhookUrl!, topic, clientName, channelId, selectedCampaign?.theme);
         await updateTopic.mutateAsync({ id: topic.id, posted_at: new Date().toISOString() });
         success++;
       } catch (err) {
         console.error(`Publicatie mislukt voor topic ${topic.id}:`, err);
       }
+    }
+
+    if (missingChannels.size > 0) {
+      toast({
+        title: "Ontbrekende Buffer channels",
+        description: `Vul Buffer channel-ID in bij Instellingen voor: ${[...missingChannels].join(", ")}`,
+        variant: "destructive",
+      });
     }
 
     await refetchTopics();

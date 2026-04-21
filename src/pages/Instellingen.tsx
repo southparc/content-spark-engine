@@ -92,6 +92,27 @@ export default function Instellingen() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-lg">Buffer Channel IDs</CardTitle>
+          <CardDescription>De Buffer channel-ID per platform die n8n gebruikt om te posten.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>LinkedIn channel ID</Label>
+            <Input value={local.buffer_channel_linkedin ?? ""} onChange={(e) => update("buffer_channel_linkedin", e.target.value)} placeholder="bv. 5f8a..." />
+          </div>
+          <div>
+            <Label>X (Twitter) channel ID</Label>
+            <Input value={local.buffer_channel_x ?? ""} onChange={(e) => update("buffer_channel_x", e.target.value)} placeholder="bv. 5f8a..." />
+          </div>
+          <div>
+            <Label>Instagram channel ID</Label>
+            <Input value={local.buffer_channel_instagram ?? ""} onChange={(e) => update("buffer_channel_instagram", e.target.value)} placeholder="bv. 5f8a..." />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-lg">Creatomate</CardTitle>
           <CardDescription>Video & carousel rendering</CardDescription>
         </CardHeader>
