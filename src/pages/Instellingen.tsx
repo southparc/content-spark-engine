@@ -97,6 +97,10 @@ export default function Instellingen() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
+            <Label>Buffer profile ID</Label>
+            <Input value={local.buffer_profile_id ?? ""} onChange={(e) => update("buffer_profile_id", e.target.value)} placeholder="bv. 5f8a..." />
+          </div>
+          <div>
             <Label>LinkedIn channel ID</Label>
             <Input value={local.buffer_channel_linkedin ?? ""} onChange={(e) => update("buffer_channel_linkedin", e.target.value)} placeholder="bv. 5f8a..." />
           </div>
