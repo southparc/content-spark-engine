@@ -78,7 +78,9 @@ export default function Publiceren() {
   const hasWebhook = !!webhookUrl?.trim();
 
   const selectedCampaign = campaigns?.find((c) => c.id === selectedCampaignId);
-  const clientName = clients?.find((c) => c.id === selectedCampaign?.client_id)?.name || "";
+  const clientId = selectedCampaign?.client_id || "";
+  const clientName = clients?.find((c) => c.id === clientId)?.name || "";
+  const bufferProfileId = settings?.buffer_profile_id || "";
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -111,7 +113,7 @@ export default function Publiceren() {
         continue;
       }
       try {
-        await publishViaN8n(webhookUrl!, topic, clientName, channelId, selectedCampaign?.theme);
+        await publishViaN8n(webhookUrl!, topic, clientId, clientName, channelId, bufferProfileId, selectedCampaign?.theme);
         await updateTopic.mutateAsync({ id: topic.id, posted_at: new Date().toISOString() });
         success++;
       } catch (err) {
