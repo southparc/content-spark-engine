@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, Lo
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import southparcLogo from "@/assets/southparc-logo.png.asset.json";
 import {
   Sidebar,
   SidebarContent,
