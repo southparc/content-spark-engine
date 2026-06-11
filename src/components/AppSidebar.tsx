@@ -2,6 +2,7 @@ import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, Lo
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import southparcLogo from "@/assets/southparc-logo.png.asset.json";
 import {
   Sidebar,
   SidebarContent,
@@ -43,18 +44,18 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+            <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+              <img src={southparcLogo.url} alt="Southparc" className="h-7 w-7 object-contain" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-sidebar-primary-foreground">Marketing Machine</h1>
+              <h1 className="text-sm font-bold text-sidebar-primary-foreground">Southparc Content</h1>
               <p className="text-xs text-sidebar-foreground/60">Content Engine</p>
             </div>
           </div>
         )}
         {collapsed && (
-          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center mx-auto">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
+          <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center mx-auto overflow-hidden">
+            <img src={southparcLogo.url} alt="Southparc" className="h-7 w-7 object-contain" />
           </div>
         )}
       </SidebarHeader>
