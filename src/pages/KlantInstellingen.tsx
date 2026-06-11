@@ -247,7 +247,7 @@ export default function KlantInstellingen() {
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground">Zonder kanaal voor een platform valt de publicatie voor dat platform terug op de globale instellingen — stel ze dus per klant in.</p>
+          <p className="text-xs text-muted-foreground">Zonder eigen token en kanaal wordt er voor deze klant níét gepubliceerd — er is bewust geen terugval op een ander Buffer-account.</p>
         </CardContent>
       </Card>
     </div>

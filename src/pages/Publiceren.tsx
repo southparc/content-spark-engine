@@ -59,15 +59,13 @@ async function publishViaN8n(
   }
 }
 
+// Elke klant publiceert via een eigen Buffer-account; er is bewust géén
+// terugval op globale kanalen, anders belanden posts op het verkeerde account.
 function getBufferChannelId(
-  settings: Record<string, string> | undefined,
+  bufferProfiles: Record<string, string> | undefined,
   platform: MmTopic["platform"],
 ): string {
-  if (!settings) return "";
-  if (platform === "linkedin") return settings.buffer_channel_linkedin ?? "";
-  if (platform === "x") return settings.buffer_channel_x ?? "";
-  if (platform === "instagram") return settings.buffer_channel_instagram ?? "";
-  return "";
+  return bufferProfiles?.[platform] ?? "";
 }
 
 export default function Publiceren() {
@@ -117,7 +115,8 @@ export default function Publiceren() {
     const missingChannels = new Set<string>();
 
     for (const topic of toPublish) {
-      const channelId = getBufferChannelId(settings, topic.platform);
+      const publishClient = clients?.find((c) => c.id === clientId);
+      const channelId = getBufferChannelId(publishClient?.buffer_profiles, topic.platform);
       if (!channelId) {
         missingChannels.add(topic.platform);
         console.warn(`Geen Buffer channel-ID voor platform ${topic.platform}, topic ${topic.id} overgeslagen.`);
@@ -135,7 +134,7 @@ export default function Publiceren() {
     if (missingChannels.size > 0) {
       toast({
         title: "Ontbrekende Buffer channels",
-        description: `Vul Buffer channel-ID in bij Instellingen voor: ${[...missingChannels].join(", ")}`,
+        description: `Deze klant heeft geen eigen Buffer-kanaal voor: ${[...missingChannels].join(", ")}. Stel het in via Klanten → instellingen.`,
         variant: "destructive",
       });
     }
