@@ -97,6 +97,11 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        {!collapsed && (
+          <p className="text-[10px] text-sidebar-foreground/40 mt-2">
+            v{__APP_VERSION__} · build {__BUILD_DATE__}
+          </p>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

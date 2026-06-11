@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Linkedin, Twitter, Instagram, FileText, CheckCircle2, XCircle, MessageSquare, Eye, Clock } from "lucide-react";
-import { useCampaigns, useTopics, useUpdateTopic, useClients, type MmTopic } from "@/hooks/use-marketing-data";
+import { Linkedin, Twitter, Instagram, FileText, CheckCircle2, XCircle, MessageSquare, Eye, Clock, RefreshCw, Loader2 } from "lucide-react";
+import { useCampaigns, useTopics, useUpdateTopic, useClients, useSettings, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
+import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,7 @@ function getApprovalBadge(topic: MmTopic) {
 export default function ApprovalWorkflow() {
   const { data: clients } = useClients();
   const { data: campaigns } = useCampaigns();
+  const { data: settings } = useSettings();
   const updateTopic = useUpdateTopic();
   const { toast } = useToast();
 
@@ -51,6 +53,39 @@ export default function ApprovalWorkflow() {
   const [feedbackDialog, setFeedbackDialog] = useState<MmTopic | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [previewTopic, setPreviewTopic] = useState<MmTopic | null>(null);
+  const [regeneratingImageId, setRegeneratingImageId] = useState<string | null>(null);
+
+  const selectedCampaign = campaigns?.find((c) => c.id === selectedCampaignId);
+  const campaignClient = clients?.find((cl) => cl.id === selectedCampaign?.client_id);
+  const imageWebhook = settings?.webhook_generate_image;
+
+  const handleRegenerateImage = async (topic: MmTopic) => {
+    if (!imageWebhook?.trim()) {
+      toast({ title: "Geen beeld-webhook ingesteld", description: "Voeg webhook_generate_image toe bij Instellingen.", variant: "destructive" });
+      return;
+    }
+    setRegeneratingImageId(topic.id);
+    try {
+      const data = await invokeN8nWebhook({
+        webhookUrl: imageWebhook,
+        payload: {
+          hook: topic.hook,
+          platform: topic.platform,
+          campaign_theme: selectedCampaign?.theme || "",
+          branding: campaignClient?.branding || "",
+          client_name: campaignClient?.name || "",
+        },
+      });
+      const mediaUrl = data && typeof data === "object" ? (data as { media_url?: string }).media_url : undefined;
+      if (!mediaUrl) throw new Error("Geen media_url in het antwoord van n8n.");
+      await updateTopic.mutateAsync({ id: topic.id, media_url: mediaUrl });
+      await refetch();
+      toast({ title: "Nieuw beeld gegenereerd 🖼️" });
+    } catch (err) {
+      toast({ title: "Beeld genereren mislukt", description: getErrorMessage(err), variant: "destructive" });
+    }
+    setRegeneratingImageId(null);
+  };
 
   const contentTopics = topics?.filter((t) => t.generated_content && !t.variant_of) || [];
   const pendingReview = contentTopics.filter((t) => !(t as any).client_approved && !(t as any).client_feedback);
@@ -102,6 +137,11 @@ export default function ApprovalWorkflow() {
             <Icon className="h-3 w-3 mr-1" />
             {topic.platform}
           </Badge>
+          {topic.media_url && (
+            <button onClick={() => setPreviewTopic(topic)} className="shrink-0" title="Bekijk beeld">
+              <img src={topic.media_url} alt="" className="h-14 w-14 rounded-md object-cover border border-border" />
+            </button>
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium text-foreground">{topic.hook}</p>
@@ -120,6 +160,20 @@ export default function ApprovalWorkflow() {
           <div className="flex gap-1 shrink-0">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewTopic(topic)} title="Bekijk content">
               <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleRegenerateImage(topic)}
+              disabled={regeneratingImageId === topic.id}
+              title={topic.media_url ? "Nieuw beeld genereren" : "Beeld genereren"}
+            >
+              {regeneratingImageId === topic.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              )}
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFeedbackDialog(topic); setFeedbackText((topic as any).client_feedback || ""); }} title="Feedback geven">
               <MessageSquare className="h-4 w-4" />
@@ -232,7 +286,10 @@ export default function ApprovalWorkflow() {
               {previewTopic?.hook}
             </DialogTitle>
           </DialogHeader>
-          <div className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
+          {previewTopic?.media_url && (
+            <img src={previewTopic.media_url} alt="" className="w-full rounded-lg border border-border" />
+          )}
+          <div className="whitespace-pre-wrap text-sm text-foreground leading-relaxed max-h-80 overflow-y-auto">
             {previewTopic?.generated_content}
           </div>
           {(previewTopic as any)?.client_feedback && (
