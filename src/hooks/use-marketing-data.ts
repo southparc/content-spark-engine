@@ -12,6 +12,7 @@ export interface MmClient {
   cta_url: string;
   lead_magnet: string;
   buffer_token: string;
+  buffer_profiles?: Record<string, string>;
   created_at: string;
   updated_at: string;
 }

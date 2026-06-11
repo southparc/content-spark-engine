@@ -12,7 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Settings2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient, type MmClient } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,6 +25,7 @@ export default function Klanten() {
   const [editingClient, setEditingClient] = useState<MmClient | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSave = (values: Omit<MmClient, "id" | "created_at" | "updated_at">) => {
     if (editingClient) {
@@ -36,9 +38,10 @@ export default function Klanten() {
       });
     } else {
       createClient.mutate(values, {
-        onSuccess: () => {
-          toast({ title: "Klant toegevoegd", description: `${values.name} is aangemaakt.` });
+        onSuccess: (data) => {
+          toast({ title: "Klant toegevoegd", description: `${values.name} is aangemaakt — vul nu de instellingen in.` });
           setDialogOpen(false);
+          navigate(`/klanten/${(data as MmClient).id}`);
         },
       });
     }
@@ -99,6 +102,9 @@ export default function Klanten() {
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base">{client.name}</CardTitle>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/klanten/${client.id}`)} title="Instellingen">
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingClient(client); setDialogOpen(true); }}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>

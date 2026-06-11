@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Dashboard from "@/pages/Dashboard";
 import Klanten from "@/pages/Klanten";
+import KlantInstellingen from "@/pages/KlantInstellingen";
 import Campagne from "@/pages/Campagne";
 import ContentGeneratie from "@/pages/ContentGeneratie";
 import Publiceren from "@/pages/Publiceren";
@@ -35,6 +36,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/klanten" element={<Klanten />} />
+                <Route path="/klanten/:id" element={<KlantInstellingen />} />
                 <Route path="/campagne" element={<Campagne />} />
                 <Route path="/content" element={<ContentGeneratie />} />
                 <Route path="/publiceren" element={<Publiceren />} />
