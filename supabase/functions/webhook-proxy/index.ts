@@ -5,6 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Alleen webhooks op de eigen n8n-instantie zijn toegestaan; voorkomt dat de
+// proxy als open relay (SSRF) misbruikt kan worden.
+const ALLOWED_HOSTS = ["ai.southparc.nl"];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +20,14 @@ serve(async (req) => {
     if (!webhook_url) {
       return new Response(JSON.stringify({ error: "webhook_url is required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const url = new URL(webhook_url);
+    if (!ALLOWED_HOSTS.includes(url.hostname)) {
+      return new Response(JSON.stringify({ error: `Host ${url.hostname} is niet toegestaan` }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

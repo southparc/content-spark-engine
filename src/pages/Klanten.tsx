@@ -113,6 +113,9 @@ export default function Klanten() {
                 <InfoRow label="Tone of voice" value={client.tone_of_voice} />
                 <InfoRow label="Hashtags" value={client.hashtags} />
                 <InfoRow label="Branding" value={client.branding} />
+                <InfoRow label="CTA-link (afspraak/download)" value={client.cta_url} />
+                <InfoRow label="Lead magnet" value={client.lead_magnet} />
+                <InfoRow label="Buffer-token" value={client.buffer_token ? "•••• ingesteld" : ""} />
               </CardContent>
             </Card>
           ))}
@@ -147,10 +150,13 @@ function ClientForm({
   const [toneOfVoice, setToneOfVoice] = useState(initial?.tone_of_voice ?? "");
   const [hashtags, setHashtags] = useState(initial?.hashtags ?? "");
   const [branding, setBranding] = useState(initial?.branding ?? "");
+  const [ctaUrl, setCtaUrl] = useState(initial?.cta_url ?? "");
+  const [leadMagnet, setLeadMagnet] = useState(initial?.lead_magnet ?? "");
+  const [bufferToken, setBufferToken] = useState(initial?.buffer_token ?? "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ name, doelgroep, tone_of_voice: toneOfVoice, hashtags, branding });
+    onSave({ name, doelgroep, tone_of_voice: toneOfVoice, hashtags, branding, cta_url: ctaUrl, lead_magnet: leadMagnet, buffer_token: bufferToken });
   };
 
   return (
@@ -174,6 +180,20 @@ function ClientForm({
       <div>
         <Label htmlFor="branding">Branding</Label>
         <Input id="branding" value={branding} onChange={(e) => setBranding(e.target.value)} placeholder="Kleuren, stijl..." />
+      </div>
+      <div>
+        <Label htmlFor="cta_url">CTA-link (afspraak/download-pagina)</Label>
+        <Input id="cta_url" type="url" value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://www.voorbeeld.nl/afspraak" />
+        <p className="text-xs text-muted-foreground mt-1">Posts sluiten af met deze link, automatisch voorzien van UTM-tracking.</p>
+      </div>
+      <div>
+        <Label htmlFor="lead_magnet">Lead magnet</Label>
+        <Input id="lead_magnet" value={leadMagnet} onChange={(e) => setLeadMagnet(e.target.value)} placeholder="Bijv. whitepaper 'AI in 30 dagen', gratis scan..." />
+      </div>
+      <div>
+        <Label htmlFor="buffer_token">Buffer API-token (van deze klant)</Label>
+        <Input id="buffer_token" type="password" value={bufferToken} onChange={(e) => setBufferToken(e.target.value)} placeholder="Eigen Buffer-account van de klant" />
+        <p className="text-xs text-muted-foreground mt-1">Publicaties lopen via het Buffer-account van de klant; de klant kan daar ook zelf handmatig posten.</p>
       </div>
       <div className="flex gap-2 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>Annuleren</Button>

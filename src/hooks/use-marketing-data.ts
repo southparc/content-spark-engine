@@ -9,6 +9,25 @@ export interface MmClient {
   tone_of_voice: string;
   hashtags: string;
   branding: string;
+  cta_url: string;
+  lead_magnet: string;
+  buffer_token: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MmRecurringCampaign {
+  id: string;
+  client_id: string;
+  campaign_id: string | null;
+  theme: string;
+  onderwerp: string;
+  keyword: string;
+  platforms: string[];
+  frequency_per_week: number;
+  auto_publish: boolean;
+  active: boolean;
+  last_run_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +51,8 @@ export interface MmTopic {
   generated_content: string | null;
   variant_of: string | null;
   media_url: string | null;
+  client_approved: boolean | null;
+  client_feedback: string | null;
   posted_at: string | null;
   created_at: string;
 }
@@ -220,6 +241,84 @@ export function useDeleteMediaItem() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_media"] }),
+  });
+}
+
+// ---- Recurring Campaigns ----
+export function useRecurringCampaigns() {
+  return useQuery({
+    queryKey: ["mm_recurring_campaigns"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mm_recurring_campaigns")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as MmRecurringCampaign[];
+    },
+  });
+}
+
+export function useCreateRecurringCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    // Maakt eerst de mm_campaigns-rij waaronder gegenereerde topics in de app
+    // verschijnen; de scheduler slaat recurring-rijen zonder campaign_id over.
+    mutationFn: async (input: {
+      client_id: string;
+      theme: string;
+      onderwerp: string;
+      keyword: string;
+      platforms: string[];
+      frequency_per_week: number;
+      auto_publish: boolean;
+    }) => {
+      const { data: campaign, error: campaignError } = await supabase
+        .from("mm_campaigns")
+        .insert({ client_id: input.client_id, theme: input.theme, status: "active" })
+        .select()
+        .single();
+      if (campaignError) throw campaignError;
+      const { data, error } = await supabase
+        .from("mm_recurring_campaigns")
+        .insert({ ...input, campaign_id: campaign.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as MmRecurringCampaign;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mm_recurring_campaigns"] });
+      qc.invalidateQueries({ queryKey: ["mm_campaigns"] });
+    },
+  });
+}
+
+export function useUpdateRecurringCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<MmRecurringCampaign> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("mm_recurring_campaigns")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as MmRecurringCampaign;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_recurring_campaigns"] }),
+  });
+}
+
+export function useDeleteRecurringCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("mm_recurring_campaigns").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_recurring_campaigns"] }),
   });
 }
 

@@ -5,8 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, Plus, Trash2, Calendar, Clock } from "lucide-react";
-import { useClients } from "@/hooks/use-marketing-data";
+import { RefreshCw, Plus, Trash2, Calendar, Clock, Zap, Loader2 } from "lucide-react";
+import {
+  useClients,
+  useRecurringCampaigns,
+  useCreateRecurringCampaign,
+  useUpdateRecurringCampaign,
+  useDeleteRecurringCampaign,
+} from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -22,70 +28,67 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
-interface RecurringTemplate {
-  id: string;
-  client_id: string;
-  theme: string;
-  frequency: "daily" | "weekly" | "biweekly" | "monthly";
-  day_of_week?: string;
-  active: boolean;
-  created_at: string;
-  last_run?: string;
-}
-
-const FREQUENCY_LABELS: Record<string, string> = {
-  daily: "Dagelijks",
-  weekly: "Wekelijks",
-  biweekly: "Om de week",
-  monthly: "Maandelijks",
+// Moet gelijk blijven aan de dayMap in de n8n-workflow "MM Scheduler"
+const FREQUENCY_LABELS: Record<number, string> = {
+  1: "1x per week (di)",
+  2: "2x per week (ma, do)",
+  3: "3x per week (ma, wo, vr)",
+  4: "4x per week (ma, di, do, vr)",
+  5: "5x per week (werkdagen)",
+  6: "6x per week (ma t/m za)",
+  7: "Dagelijks",
 };
 
-const DAYS = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
+const ALL_PLATFORMS = ["linkedin", "x", "instagram"] as const;
 
 export default function RecurringCampaigns() {
   const { data: clients } = useClients();
+  const { data: campaigns, isLoading } = useRecurringCampaigns();
+  const createRecurring = useCreateRecurringCampaign();
+  const updateRecurring = useUpdateRecurringCampaign();
+  const deleteRecurring = useDeleteRecurringCampaign();
   const { toast } = useToast();
 
-  // Local state for now - will be backed by DB table mm_recurring_campaigns
-  const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({
     client_id: "",
     theme: "",
-    frequency: "weekly" as RecurringTemplate["frequency"],
-    day_of_week: "Maandag",
+    onderwerp: "",
+    keyword: "",
+    platforms: ["linkedin", "x", "instagram"] as string[],
+    frequency_per_week: 3,
+    auto_publish: false,
   });
 
-  const handleCreate = () => {
+  const resetForm = () =>
+    setForm({ client_id: "", theme: "", onderwerp: "", keyword: "", platforms: ["linkedin", "x", "instagram"], frequency_per_week: 3, auto_publish: false });
+
+  const handleCreate = async () => {
     if (!form.client_id || !form.theme.trim()) {
-      toast({ title: "Vul alle velden in", variant: "destructive" });
+      toast({ title: "Kies een klant en vul minimaal een thema in", variant: "destructive" });
       return;
     }
-    const newTemplate: RecurringTemplate = {
-      id: crypto.randomUUID(),
-      client_id: form.client_id,
-      theme: form.theme,
-      frequency: form.frequency,
-      day_of_week: form.frequency !== "daily" ? form.day_of_week : undefined,
-      active: true,
-      created_at: new Date().toISOString(),
-    };
-    setTemplates((prev) => [newTemplate, ...prev]);
-    setShowDialog(false);
-    setForm({ client_id: "", theme: "", frequency: "weekly", day_of_week: "Maandag" });
-    toast({ title: "Recurring campagne aangemaakt! 🔄" });
+    if (form.platforms.length === 0) {
+      toast({ title: "Kies minimaal één platform", variant: "destructive" });
+      return;
+    }
+    try {
+      await createRecurring.mutateAsync(form);
+      setShowDialog(false);
+      resetForm();
+      toast({ title: "Recurring campagne actief! 🔄", description: "De scheduler pakt hem op de eerstvolgende postdag om 09:00 op." });
+    } catch (err) {
+      toast({ title: "Aanmaken mislukt", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    }
   };
 
-  const toggleActive = (id: string) => {
-    setTemplates((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, active: !t.active } : t))
-    );
-  };
-
-  const handleDelete = (id: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
-    toast({ title: "Template verwijderd" });
+  const togglePlatform = (p: string) => {
+    setForm((prev) => ({
+      ...prev,
+      platforms: prev.platforms.includes(p) ? prev.platforms.filter((x) => x !== p) : [...prev.platforms, p],
+    }));
   };
 
   return (
@@ -93,57 +96,86 @@ export default function RecurringCampaigns() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Recurring Campaigns</h1>
-          <p className="text-muted-foreground">Automatiseer wekelijks terugkerende content thema's</p>
+          <p className="text-muted-foreground">De scheduler genereert automatisch posts op vaste dagen (09:00)</p>
         </div>
         <Button onClick={() => setShowDialog(true)} className="gradient-primary border-0 text-primary-foreground hover:opacity-90">
-          <Plus className="h-4 w-4 mr-2" /> Nieuw template
+          <Plus className="h-4 w-4 mr-2" /> Nieuwe campagne
         </Button>
       </div>
 
-      {templates.length === 0 && (
+      {isLoading && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50 mx-auto" />
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && (campaigns?.length ?? 0) === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <RefreshCw className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground">Nog geen recurring campaigns.</p>
-            <p className="text-xs text-muted-foreground mt-1">Maak een template om automatisch campagnes te genereren op een vast schema.</p>
+            <p className="text-muted-foreground">Nog geen recurring campagnes.</p>
+            <p className="text-xs text-muted-foreground mt-1">Maak er een aan met thema, onderwerp en keyword — de rest gaat vanzelf.</p>
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-4">
-        {templates.map((template) => {
-          const client = clients?.find((c) => c.id === template.client_id);
+        {campaigns?.map((c) => {
+          const client = clients?.find((cl) => cl.id === c.client_id);
           return (
-            <Card key={template.id} className={!template.active ? "opacity-60" : ""}>
+            <Card key={c.id} className={!c.active ? "opacity-60" : ""}>
               <CardContent className="flex items-center gap-4 py-4 px-4">
                 <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center shrink-0">
-                  <RefreshCw className={`h-5 w-5 text-primary ${template.active ? "animate-spin-slow" : ""}`} style={{ animationDuration: "8s" }} />
+                  <RefreshCw className={`h-5 w-5 text-primary ${c.active ? "animate-spin-slow" : ""}`} style={{ animationDuration: "8s" }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{template.theme}</p>
-                    <Badge variant={template.active ? "default" : "secondary"}>
-                      {template.active ? "Actief" : "Gepauzeerd"}
-                    </Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-foreground">{c.theme}</p>
+                    <Badge variant={c.active ? "default" : "secondary"}>{c.active ? "Actief" : "Gepauzeerd"}</Badge>
+                    {c.auto_publish && (
+                      <Badge variant="outline" className="gap-1"><Zap className="h-3 w-3" /> Auto-publish</Badge>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                     <span>{client?.name || "Onbekende klant"}</span>
+                    {c.onderwerp && <span>· {c.onderwerp}</span>}
+                    {c.keyword && <span>· 🔑 {c.keyword}</span>}
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {FREQUENCY_LABELS[template.frequency]}
-                      {template.day_of_week && ` · ${template.day_of_week}`}
+                      {FREQUENCY_LABELS[c.frequency_per_week] || `${c.frequency_per_week}x per week`}
                     </span>
-                    {template.last_run && (
+                    <span>{(c.platforms || []).join(", ")}</span>
+                    {c.last_run_at && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        Laatst: {new Date(template.last_run).toLocaleDateString("nl-NL")}
+                        Laatst: {new Date(c.last_run_at).toLocaleDateString("nl-NL")}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Switch checked={template.active} onCheckedChange={() => toggleActive(template.id)} />
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(template.id)}>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5" title="Direct publiceren zonder goedkeuring">
+                    <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Switch
+                      checked={c.auto_publish}
+                      onCheckedChange={(v) => updateRecurring.mutate({ id: c.id, auto_publish: v })}
+                    />
+                  </div>
+                  <Switch
+                    checked={c.active}
+                    onCheckedChange={(v) => updateRecurring.mutate({ id: c.id, active: v })}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      deleteRecurring.mutate(c.id);
+                      toast({ title: "Campagne verwijderd" });
+                    }}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -156,20 +188,20 @@ export default function RecurringCampaigns() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Hoe werkt het?</CardTitle>
-          <CardDescription>Recurring campaigns automatiseren je content workflow</CardDescription>
+          <CardDescription>De n8n-scheduler draait elke ochtend om 09:00</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div className="flex gap-3">
             <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">1</span>
-            <p>Maak een template met klant, thema en frequentie</p>
+            <p>Maak een campagne met klant, thema, onderwerp en keyword</p>
           </div>
           <div className="flex gap-3">
             <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">2</span>
-            <p>n8n triggert automatisch op het ingestelde schema via een cron webhook</p>
+            <p>Op elke postdag genereert de scheduler een hook, beeld en complete post (platform roteert)</p>
           </div>
           <div className="flex gap-3">
             <span className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">3</span>
-            <p>Topics worden gegenereerd, content wordt gemaakt en klaar gezet voor review</p>
+            <p>Auto-publish uit: post wacht op jouw goedkeuring · Auto-publish aan: post gaat direct via Buffer live</p>
           </div>
         </CardContent>
       </Card>
@@ -178,7 +210,7 @@ export default function RecurringCampaigns() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nieuw recurring template</DialogTitle>
+            <DialogTitle>Nieuwe recurring campagne</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -195,12 +227,20 @@ export default function RecurringCampaigns() {
               </Select>
             </div>
             <div>
-              <Label>Thema / onderwerp</Label>
-              <Input value={form.theme} onChange={(e) => setForm((p) => ({ ...p, theme: e.target.value }))} placeholder="Bijv. Wekelijkse tips, Maandelijks nieuws..." />
+              <Label>Thema</Label>
+              <Input value={form.theme} onChange={(e) => setForm((p) => ({ ...p, theme: e.target.value }))} placeholder="Bijv. AI voor financieel adviseurs" />
+            </div>
+            <div>
+              <Label>Onderwerp</Label>
+              <Input value={form.onderwerp} onChange={(e) => setForm((p) => ({ ...p, onderwerp: e.target.value }))} placeholder="Bijv. tijdwinst in het adviesgesprek" />
+            </div>
+            <div>
+              <Label>Keyword</Label>
+              <Input value={form.keyword} onChange={(e) => setForm((p) => ({ ...p, keyword: e.target.value }))} placeholder="Bijv. ai hypotheekadvies" />
             </div>
             <div>
               <Label>Frequentie</Label>
-              <Select value={form.frequency} onValueChange={(v) => setForm((p) => ({ ...p, frequency: v as any }))}>
+              <Select value={String(form.frequency_per_week)} onValueChange={(v) => setForm((p) => ({ ...p, frequency_per_week: Number(v) }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -211,25 +251,31 @@ export default function RecurringCampaigns() {
                 </SelectContent>
               </Select>
             </div>
-            {form.frequency !== "daily" && (
-              <div>
-                <Label>Dag</Label>
-                <Select value={form.day_of_week} onValueChange={(v) => setForm((p) => ({ ...p, day_of_week: v }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DAYS.map((d) => (
-                      <SelectItem key={d} value={d}>{d}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div>
+              <Label className="mb-2 block">Platforms</Label>
+              <div className="flex gap-4">
+                {ALL_PLATFORMS.map((p) => (
+                  <label key={p} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={form.platforms.includes(p)} onCheckedChange={() => togglePlatform(p)} />
+                    {p}
+                  </label>
+                ))}
               </div>
-            )}
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Auto-publish</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Aan = direct via Buffer live, zonder goedkeuringsstap</p>
+              </div>
+              <Switch checked={form.auto_publish} onCheckedChange={(v) => setForm((p) => ({ ...p, auto_publish: v }))} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Annuleren</Button>
-            <Button onClick={handleCreate}>Aanmaken</Button>
+            <Button onClick={handleCreate} disabled={createRecurring.isPending}>
+              {createRecurring.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Aanmaken
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

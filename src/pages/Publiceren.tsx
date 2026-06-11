@@ -31,7 +31,7 @@ async function publishViaN8n(
   bufferProfileId: string,
   campaignTheme?: string,
 ): Promise<void> {
-  await invokeN8nWebhook({
+  const data = await invokeN8nWebhook({
     webhookUrl,
     allowEmptyResponse: true,
     payload: {
@@ -47,6 +47,16 @@ async function publishViaN8n(
       buffer_profile_id: bufferProfileId,
     },
   });
+
+  // De n8n-workflow geeft {status:"ok"|"error", buffer:{...}} terug; alleen bij
+  // een bevestigde Buffer-publicatie mag de post als gepost gemarkeerd worden.
+  if (data && typeof data === "object") {
+    const resp = data as { status?: string; buffer?: { data?: { createPost?: { message?: string; __typename?: string } } } };
+    if (resp.status && resp.status !== "ok") {
+      const bufferMessage = resp.buffer?.data?.createPost?.message || resp.buffer?.data?.createPost?.__typename || "onbekende Buffer-fout";
+      throw new Error(`Buffer weigerde de post: ${bufferMessage}`);
+    }
+  }
 }
 
 function getBufferChannelId(
@@ -72,7 +82,8 @@ export default function Publiceren() {
   const [publishing, setPublishing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const readyTopics = topics?.filter((t) => t.generated_content && !t.posted_at) || [];
+  const readyTopics = topics?.filter((t) => t.generated_content && !t.posted_at && t.client_approved === true) || [];
+  const awaitingApproval = topics?.filter((t) => t.generated_content && !t.posted_at && t.client_approved !== true) || [];
   const postedTopics = topics?.filter((t) => t.posted_at) || [];
   const webhookUrl = settings?.webhook_post;
   const hasWebhook = !!webhookUrl?.trim();
@@ -167,8 +178,11 @@ export default function Publiceren() {
           </Select>
 
           {selectedCampaignId && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
               <span>📝 {readyTopics.length} klaar om te publiceren</span>
+              {awaitingApproval.length > 0 && (
+                <span>⏳ {awaitingApproval.length} wacht op goedkeuring (zie Goedkeuring)</span>
+              )}
               <span>✅ {postedTopics.length} gepubliceerd</span>
             </div>
           )}
