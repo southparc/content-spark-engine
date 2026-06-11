@@ -76,6 +76,7 @@ export default function Campagne() {
   const createTopics = useCreateTopics();
   const updateTopic = useUpdateTopic();
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [targetCampaignId, setTargetCampaignId] = useState("new");
   const [theme, setTheme] = useState("");
   const [topics, setTopics] = useState<MmTopic[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -84,15 +85,22 @@ export default function Campagne() {
   const navigate = useNavigate();
 
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
+  const clientCampaigns = campaigns?.filter((c) => c.client_id === selectedClientId) || [];
+  const targetCampaign = campaigns?.find((c) => c.id === targetCampaignId);
   const webhookUrl = settings?.webhook_generate_topics;
   const hasWebhook = !!webhookUrl?.trim();
 
+  const effectiveTheme = targetCampaignId !== "new" && targetCampaign ? targetCampaign.theme : theme;
+
   const handleGenerate = async () => {
-    if (!selectedClient || !theme.trim()) return;
+    if (!selectedClient || !effectiveTheme.trim()) return;
     setGenerating(true);
     try {
-      // 1. Create campaign
-      const campaign = await createCampaign.mutateAsync({ client_id: selectedClient.id, theme });
+      // 1. Bestaande campagne aanvullen (hook-voorraad voor de scheduler) of nieuwe aanmaken
+      const campaign =
+        targetCampaignId !== "new" && targetCampaign
+          ? targetCampaign
+          : await createCampaign.mutateAsync({ client_id: selectedClient.id, theme });
 
       // 2. Generate topics via n8n webhook or fallback to mock
       let rawTopics: { hook: string; platform: string }[];
@@ -100,7 +108,7 @@ export default function Campagne() {
 
       if (hasWebhook) {
         try {
-          rawTopics = await fetchTopicsFromN8n(webhookUrl!, selectedClient, theme);
+          rawTopics = await fetchTopicsFromN8n(webhookUrl!, selectedClient, effectiveTheme);
           fromWebhook = true;
         } catch (webhookErr) {
           console.error("n8n webhook failed, falling back to mock:", webhookErr);
@@ -158,7 +166,7 @@ export default function Campagne() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Klant selecteren</Label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <Select value={selectedClientId} onValueChange={(v) => { setSelectedClientId(v); setTargetCampaignId("new"); }}>
                 <SelectTrigger>
                   <SelectValue placeholder={loadingClients ? "Laden..." : "Kies een klant..."} />
                 </SelectTrigger>
@@ -170,10 +178,27 @@ export default function Campagne() {
               </Select>
             </div>
             <div>
+              <Label>Campagne</Label>
+              <Select value={targetCampaignId} onValueChange={setTargetCampaignId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">➕ Nieuwe campagne</SelectItem>
+                  {clientCampaigns.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.theme} (voorraad aanvullen)</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {targetCampaignId === "new" && (
+            <div>
               <Label>Thema / onderwerp</Label>
               <Input value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Bijv. AI in marketing, duurzaamheid..." />
             </div>
-          </div>
+          )}
 
           {selectedClient && (
             <div className="flex flex-wrap gap-2 text-xs">
@@ -193,7 +218,7 @@ export default function Campagne() {
 
           <Button
             onClick={handleGenerate}
-            disabled={!selectedClient || !theme.trim() || generating}
+            disabled={!selectedClient || !effectiveTheme.trim() || generating}
             className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
           >
             {generating ? (

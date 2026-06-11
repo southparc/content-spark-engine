@@ -16,6 +16,12 @@ export interface MmClient {
   updated_at: string;
 }
 
+export interface MmPlatformSchedule {
+  x_per_day: number;
+  linkedin_per_week: number;
+  instagram_per_week: number;
+}
+
 export interface MmRecurringCampaign {
   id: string;
   client_id: string;
@@ -23,7 +29,11 @@ export interface MmRecurringCampaign {
   theme: string;
   onderwerp: string;
   keyword: string;
+  keywords: string[];
+  keyword_index: number;
   platforms: string[];
+  platform_schedule: MmPlatformSchedule;
+  auto_platforms: string[];
   frequency_per_week: number;
   auto_publish: boolean;
   active: boolean;
@@ -269,7 +279,10 @@ export function useCreateRecurringCampaign() {
       theme: string;
       onderwerp: string;
       keyword: string;
+      keywords: string[];
       platforms: string[];
+      platform_schedule: MmPlatformSchedule;
+      auto_platforms: string[];
       frequency_per_week: number;
       auto_publish: boolean;
     }) => {
