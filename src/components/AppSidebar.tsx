@@ -1,7 +1,7 @@
 import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { useAllTopics } from "@/hooks/use-marketing-data";
 import southparcLogo from "@/assets/southparc-logo.png.asset.json";
 import {
   Sidebar,
@@ -17,27 +17,63 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Klanten", url: "/klanten", icon: Users },
-  { title: "Campagne", url: "/campagne", icon: Sparkles },
-  { title: "Content", url: "/content", icon: FileText },
-  { title: "Publiceren", url: "/publiceren", icon: Send },
-  { title: "Kalender", url: "/kalender", icon: Calendar },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Media", url: "/media", icon: Image },
-  { title: "Trends", url: "/trends", icon: TrendingUp },
-  { title: "Goedkeuring", url: "/goedkeuring", icon: CheckCircle2 },
-  { title: "Recurring", url: "/recurring", icon: RefreshCw },
-  { title: "Geschiedenis", url: "/geschiedenis", icon: History },
-  { title: "Instellingen", url: "/instellingen", icon: Settings },
-];
+interface NavItem {
+  title: string;
+  url: string;
+  icon: any;
+  badge?: number;
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const { signOut, user } = useAuth();
+  const { data: allTopics } = useAllTopics();
+
+  // Aantal posts dat op goedkeuring wacht — het dagelijkse werk
+  const pendingCount =
+    allTopics?.filter((t) => t.generated_content && !t.posted_at && t.client_approved !== true).length ?? 0;
+
+  const sections: NavSection[] = [
+    {
+      label: "Vandaag",
+      items: [
+        { title: "Dashboard", url: "/", icon: LayoutDashboard },
+        { title: "Goedkeuring", url: "/goedkeuring", icon: CheckCircle2, badge: pendingCount },
+        { title: "Publiceren", url: "/publiceren", icon: Send },
+      ],
+    },
+    {
+      label: "Campagnes",
+      items: [
+        { title: "Recurring", url: "/recurring", icon: RefreshCw },
+        { title: "Voorraad & campagne", url: "/campagne", icon: Sparkles },
+        { title: "Losse content", url: "/content", icon: FileText },
+        { title: "Kalender", url: "/kalender", icon: Calendar },
+      ],
+    },
+    {
+      label: "Inzicht",
+      items: [
+        { title: "Analytics", url: "/analytics", icon: BarChart3 },
+        { title: "Trends", url: "/trends", icon: TrendingUp },
+        { title: "Geschiedenis", url: "/geschiedenis", icon: History },
+      ],
+    },
+    {
+      label: "Beheer",
+      items: [
+        { title: "Klanten", url: "/klanten", icon: Users },
+        { title: "Media", url: "/media", icon: Image },
+        { title: "Instellingen", url: "/instellingen", icon: Settings },
+      ],
+    },
+  ];
 
   return (
     <Sidebar collapsible="icon">
@@ -60,30 +96,41 @@ export function AppSidebar() {
         )}
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-xs tracking-wider">
-            Navigatie
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="hover:bg-sidebar-accent text-sidebar-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {sections.map((section) => (
+          <SidebarGroup key={section.label}>
+            <SidebarGroupLabel className="text-sidebar-foreground/40 uppercase text-xs tracking-wider">
+              {section.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/"}
+                        className="hover:bg-sidebar-accent text-sidebar-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && (
+                          <span className="flex items-center gap-2 flex-1">
+                            {item.title}
+                            {!!item.badge && (
+                              <span className="ml-auto rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 leading-none">
+                                {item.badge}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="p-4">
         {!collapsed && user && (
