@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw } from "lucide-react";
+import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw, GitBranch } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllTopics } from "@/hooks/use-marketing-data";
@@ -44,6 +44,7 @@ export function AppSidebar() {
       label: "Vandaag",
       items: [
         { title: "Dashboard", url: "/", icon: LayoutDashboard },
+        { title: "Pipeline", url: "/pipeline", icon: GitBranch },
         { title: "Goedkeuring", url: "/goedkeuring", icon: CheckCircle2, badge: pendingCount },
         { title: "Publiceren", url: "/publiceren", icon: Send },
       ],
