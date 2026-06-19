@@ -51,6 +51,7 @@ const App = () => (
                 <Route path="/recurring" element={<RecurringCampaigns />} />
                 <Route path="/geschiedenis" element={<Geschiedenis />} />
                 <Route path="/instellingen" element={<Instellingen />} />
+                <Route path="/instellingen/prompts" element={<InstellingenPrompts />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </DashboardLayout>
