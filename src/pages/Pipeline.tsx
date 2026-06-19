@@ -20,7 +20,7 @@ function TopicMiniCard({ topic, clientName, dimmed }: { topic: MmTopic; clientNa
         <Icon className="h-3 w-3 shrink-0" />
         <span>{topic.platform}</span>
         {topic.media_url && <ImageIcon className="h-3 w-3 text-primary" />}
-        {topic.content_format === "longread" && <Badge variant="outline" className="text-[9px] py-0">longread</Badge>}
+        {topic.content_format && topic.content_format !== "post" && <Badge variant="outline" className="text-[9px] py-0">{topic.content_format}</Badge>}
         {clientName && <span className="ml-auto truncate max-w-[80px]">{clientName}</span>}
       </div>
       <p className="text-xs text-foreground leading-snug line-clamp-2">{topic.hook}</p>
