@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw, GitBranch } from "lucide-react";
+import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw, GitBranch, MessageSquareText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllTopics } from "@/hooks/use-marketing-data";
