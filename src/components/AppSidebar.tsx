@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw, GitBranch, MessageSquareText } from "lucide-react";
+import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw, GitBranch, MessageSquareText, UserCog } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllTopics } from "@/hooks/use-marketing-data";
@@ -70,6 +70,7 @@ export function AppSidebar() {
       label: "Beheer",
       items: [
         { title: "Klanten", url: "/klanten", icon: Users },
+        { title: "Klant-instellingen", url: "/instellingen/klanten", icon: UserCog },
         { title: "Media", url: "/media", icon: Image },
         { title: "Prompts", url: "/instellingen/prompts", icon: MessageSquareText },
         { title: "Instellingen", url: "/instellingen", icon: Settings },

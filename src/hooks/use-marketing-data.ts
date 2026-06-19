@@ -10,6 +10,7 @@ export interface MmClient {
   hashtags: string;
   branding: string;
   cta_url: string;
+  read_url?: string;
   lead_magnet: string;
   buffer_token: string;
   buffer_profiles?: Record<string, string>;
