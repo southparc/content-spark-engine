@@ -14,6 +14,7 @@ import ContentGeneratie from "@/pages/ContentGeneratie";
 import Publiceren from "@/pages/Publiceren";
 import Geschiedenis from "@/pages/Geschiedenis";
 import Instellingen from "@/pages/Instellingen";
+import InstellingenPrompts from "@/pages/InstellingenPrompts";
 import ContentKalender from "@/pages/ContentKalender";
 import Analytics from "@/pages/Analytics";
 import MediaLibrary from "@/pages/MediaLibrary";
