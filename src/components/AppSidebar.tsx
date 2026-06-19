@@ -50,10 +50,10 @@ export function AppSidebar() {
       ],
     },
     {
-      label: "Campagnes",
+      label: "Content",
       items: [
-        { title: "Recurring", url: "/recurring", icon: RefreshCw },
         { title: "Voorraad & campagne", url: "/campagne", icon: Sparkles },
+        { title: "Recurring", url: "/recurring", icon: RefreshCw },
         { title: "Losse content", url: "/content", icon: FileText },
         { title: "Kalender", url: "/kalender", icon: Calendar },
       ],
@@ -71,6 +71,7 @@ export function AppSidebar() {
       items: [
         { title: "Klanten", url: "/klanten", icon: Users },
         { title: "Media", url: "/media", icon: Image },
+        { title: "Prompts", url: "/instellingen/prompts", icon: MessageSquareText },
         { title: "Instellingen", url: "/instellingen", icon: Settings },
       ],
     },
