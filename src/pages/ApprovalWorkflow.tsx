@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Linkedin, Twitter, Instagram, FileText, CheckCircle2, XCircle, MessageSquare, Eye, Clock, RefreshCw, Loader2 } from "lucide-react";
-import { useCampaigns, useTopics, useUpdateTopic, useClients, useSettings, type MmTopic } from "@/hooks/use-marketing-data";
+import { useCampaigns, useTopics, useUpdateTopic, useClients, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
-import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
+import { getErrorMessage } from "@/lib/n8n";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -44,7 +45,6 @@ function getApprovalBadge(topic: MmTopic) {
 export default function ApprovalWorkflow() {
   const { data: clients } = useClients();
   const { data: campaigns } = useCampaigns();
-  const { data: settings } = useSettings();
   const updateTopic = useUpdateTopic();
   const { toast } = useToast();
 
@@ -57,27 +57,23 @@ export default function ApprovalWorkflow() {
 
   const selectedCampaign = campaigns?.find((c) => c.id === selectedCampaignId);
   const campaignClient = clients?.find((cl) => cl.id === selectedCampaign?.client_id);
-  const imageWebhook = settings?.webhook_generate_image;
 
+  // Roept de settings-driven edge function rechtstreeks aan (provider/model/stijl/
+  // formaat uit mm_image_settings + per-klant override), niet meer de oude n8n-webhook.
   const handleRegenerateImage = async (topic: MmTopic) => {
-    if (!imageWebhook?.trim()) {
-      toast({ title: "Geen beeld-webhook ingesteld", description: "Voeg webhook_generate_image toe bij Instellingen.", variant: "destructive" });
-      return;
-    }
     setRegeneratingImageId(topic.id);
     try {
-      const data = await invokeN8nWebhook({
-        webhookUrl: imageWebhook,
-        payload: {
+      const { data, error } = await supabase.functions.invoke("generate-image", {
+        body: {
+          client_id: campaignClient?.id,
           hook: topic.hook,
-          platform: topic.platform,
           campaign_theme: selectedCampaign?.theme || "",
-          branding: campaignClient?.branding || "",
-          client_name: campaignClient?.name || "",
+          platform: topic.platform,
         },
       });
-      const mediaUrl = data && typeof data === "object" ? (data as { media_url?: string }).media_url : undefined;
-      if (!mediaUrl) throw new Error("Geen media_url in het antwoord van n8n.");
+      if (error) throw new Error(error.message || "Edge function gaf een fout");
+      const mediaUrl = data && typeof data === "object" ? (data as { media_url?: string; error?: string }).media_url : undefined;
+      if (!mediaUrl) throw new Error((data as { error?: string })?.error || "Geen media_url terug van generate-image.");
       await updateTopic.mutateAsync({ id: topic.id, media_url: mediaUrl });
       await refetch();
       toast({ title: "Nieuw beeld gegenereerd 🖼️" });

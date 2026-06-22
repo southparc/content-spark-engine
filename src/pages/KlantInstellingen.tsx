@@ -17,7 +17,11 @@ import {
 } from "@/components/ui/select";
 import { useClients, useUpdateClient, useSettings } from "@/hooks/use-marketing-data";
 import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
+import { IMAGE_PROVIDERS, IMAGE_MODELS, IMAGE_QUALITIES } from "@/lib/image-options";
 import { useToast } from "@/hooks/use-toast";
+
+// Sentinel voor "gebruik globale default" (Radix Select staat geen lege value toe)
+const USE_GLOBAL = "__default__";
 
 interface BufferChannel {
   id: string;
@@ -52,6 +56,13 @@ export default function KlantInstellingen() {
     lead_magnet: "",
     buffer_token: "",
     buffer_profiles: {} as Record<string, string>,
+    img_provider: USE_GLOBAL,
+    img_model: USE_GLOBAL,
+    img_quality: USE_GLOBAL,
+    img_style_prompt: "",
+    img_negative_prompt: "",
+    brand_colors_text: "",
+    img_seed: "",
   });
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
@@ -68,9 +79,18 @@ export default function KlantInstellingen() {
         lead_magnet: client.lead_magnet ?? "",
         buffer_token: client.buffer_token ?? "",
         buffer_profiles: (client.buffer_profiles as Record<string, string>) ?? {},
+        img_provider: client.img_provider || USE_GLOBAL,
+        img_model: client.img_model || USE_GLOBAL,
+        img_quality: client.img_quality || USE_GLOBAL,
+        img_style_prompt: client.img_style_prompt ?? "",
+        img_negative_prompt: client.img_negative_prompt ?? "",
+        brand_colors_text: Array.isArray(client.brand_colors) ? client.brand_colors.join(", ") : "",
+        img_seed: client.img_seed != null ? String(client.img_seed) : "",
       });
     }
   }, [client?.id]);
+
+  const imgModels = IMAGE_MODELS[form.img_provider === USE_GLOBAL ? "openai" : form.img_provider] ?? IMAGE_MODELS.openai;
 
   const handleFetchChannels = async () => {
     const webhook = settings?.webhook_buffer_channels;
@@ -106,8 +126,32 @@ export default function KlantInstellingen() {
 
   const handleSave = () => {
     if (!id) return;
+    const brandColors = form.brand_colors_text
+      .split(/[\n,]/)
+      .map((c) => c.trim())
+      .filter(Boolean);
+    const seedNum = form.img_seed.trim() ? Number(form.img_seed) : null;
+    const payload = {
+      name: form.name,
+      doelgroep: form.doelgroep,
+      tone_of_voice: form.tone_of_voice,
+      hashtags: form.hashtags,
+      branding: form.branding,
+      cta_url: form.cta_url,
+      lead_magnet: form.lead_magnet,
+      buffer_token: form.buffer_token,
+      buffer_profiles: form.buffer_profiles,
+      // Beeld-overrides: sentinel/leeg => null (val terug op globale default)
+      img_provider: form.img_provider === USE_GLOBAL ? null : form.img_provider,
+      img_model: form.img_model === USE_GLOBAL ? null : form.img_model,
+      img_quality: form.img_quality === USE_GLOBAL ? null : form.img_quality,
+      img_style_prompt: form.img_style_prompt.trim() || null,
+      img_negative_prompt: form.img_negative_prompt.trim() || null,
+      brand_colors: brandColors.length ? brandColors : null,
+      img_seed: seedNum != null && !Number.isNaN(seedNum) ? seedNum : null,
+    };
     updateClient.mutate(
-      { id, ...form },
+      { id, ...payload },
       {
         onSuccess: () => toast({ title: "Instellingen opgeslagen", description: `${form.name} is bijgewerkt.` }),
         onError: (err) => toast({ title: "Opslaan mislukt", description: getErrorMessage(err), variant: "destructive" }),
@@ -248,6 +292,75 @@ export default function KlantInstellingen() {
             })}
           </div>
           <p className="text-xs text-muted-foreground">Zonder eigen token en kanaal wordt er voor deze klant níét gepubliceerd — er is bewust geen terugval op een ander Buffer-account.</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Beeld (override)</CardTitle>
+          <CardDescription>Leeg laten = de globale beeld-instellingen gebruiken. Hier alleen afwijkingen voor deze klant.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <Label>Provider</Label>
+              <Select
+                value={form.img_provider}
+                onValueChange={(v) => setForm((p) => ({ ...p, img_provider: v, img_model: USE_GLOBAL }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={USE_GLOBAL}>Globale default</SelectItem>
+                  {IMAGE_PROVIDERS.map((pr) => <SelectItem key={pr.value} value={pr.value}>{pr.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Model</Label>
+              <Select
+                value={form.img_model}
+                onValueChange={(v) => setForm((p) => ({ ...p, img_model: v }))}
+                disabled={form.img_provider === USE_GLOBAL}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={USE_GLOBAL}>Globale default</SelectItem>
+                  {imgModels.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Kwaliteit</Label>
+              <Select
+                value={form.img_quality}
+                onValueChange={(v) => setForm((p) => ({ ...p, img_quality: v }))}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={USE_GLOBAL}>Globale default</SelectItem>
+                  {IMAGE_QUALITIES.map((q) => <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Merk-stijlprompt</Label>
+            <Textarea rows={2} value={form.img_style_prompt} onChange={(e) => setForm((p) => ({ ...p, img_style_prompt: e.target.value }))} placeholder="Overschrijft de globale stijl-prompt voor deze klant" />
+          </div>
+          <div>
+            <Label>Merkkleuren (hex, kommagescheiden)</Label>
+            <Input value={form.brand_colors_text} onChange={(e) => setForm((p) => ({ ...p, brand_colors_text: e.target.value }))} placeholder="#477a92, #e8e1d4" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Negative prompt</Label>
+              <Textarea rows={2} value={form.img_negative_prompt} onChange={(e) => setForm((p) => ({ ...p, img_negative_prompt: e.target.value }))} placeholder="Leeg = globale default" />
+            </div>
+            <div>
+              <Label>Seed (optioneel, vaste look)</Label>
+              <Input type="number" value={form.img_seed} onChange={(e) => setForm((p) => ({ ...p, img_seed: e.target.value }))} placeholder="bv. 42" />
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

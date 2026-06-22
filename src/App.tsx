@@ -16,6 +16,7 @@ import Geschiedenis from "@/pages/Geschiedenis";
 import Instellingen from "@/pages/Instellingen";
 import InstellingenPrompts from "@/pages/InstellingenPrompts";
 import InstellingenKlanten from "@/pages/InstellingenKlanten";
+import InstellingenBeeld from "@/pages/InstellingenBeeld";
 import ContentKalender from "@/pages/ContentKalender";
 import Analytics from "@/pages/Analytics";
 import MediaLibrary from "@/pages/MediaLibrary";
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/instellingen" element={<Instellingen />} />
                 <Route path="/instellingen/prompts" element={<InstellingenPrompts />} />
                 <Route path="/instellingen/klanten" element={<InstellingenKlanten />} />
+                <Route path="/instellingen/beeld" element={<InstellingenBeeld />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </DashboardLayout>

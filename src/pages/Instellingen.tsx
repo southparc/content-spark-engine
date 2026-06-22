@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, ExternalLink, Loader2 } from "lucide-react";
+import { Save, ExternalLink, Loader2, ImageIcon, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useSettings, useUpdateSetting } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 
@@ -55,6 +56,19 @@ export default function Instellingen() {
         <h1 className="text-2xl font-bold text-foreground">Instellingen</h1>
         <p className="text-muted-foreground">Configureer je n8n webhooks en API keys</p>
       </div>
+
+      <Link to="/instellingen/beeld">
+        <Card className="hover:bg-accent/40 transition-colors">
+          <CardContent className="flex items-center gap-3 py-4 px-4">
+            <ImageIcon className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Beeld-instellingen</p>
+              <p className="text-xs text-muted-foreground">Provider, model, stijl-prompt en kanaalformaten voor de beeldgeneratie</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
 
       <Card>
         <CardHeader>

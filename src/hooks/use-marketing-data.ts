@@ -14,6 +14,14 @@ export interface MmClient {
   lead_magnet: string;
   buffer_token: string;
   buffer_profiles?: Record<string, string>;
+  // Beeld-overrides (leeg/null = globale default uit mm_image_settings)
+  img_provider?: string | null;
+  img_model?: string | null;
+  img_quality?: string | null;
+  img_style_prompt?: string | null;
+  img_negative_prompt?: string | null;
+  brand_colors?: string[] | null;
+  img_seed?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -361,5 +369,70 @@ export function useUpdateSetting() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_settings"] }),
+  });
+}
+
+// ---- Image settings (globale defaults, singleton-rij 'global') ----
+export interface MmImageSettings {
+  id: string;
+  provider: string;
+  model: string;
+  quality: string;
+  style_prompt: string;
+  negative_prompt: string;
+  updated_at: string;
+}
+
+export function useImageSettings() {
+  return useQuery({
+    queryKey: ["mm_image_settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mm_image_settings").select("*").eq("id", "global").maybeSingle();
+      if (error) throw error;
+      return data as MmImageSettings | null;
+    },
+  });
+}
+
+export function useUpdateImageSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: Partial<Omit<MmImageSettings, "id" | "updated_at">>) => {
+      const { error } = await supabase
+        .from("mm_image_settings")
+        .upsert({ id: "global", ...updates, updated_at: new Date().toISOString() }, { onConflict: "id" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_image_settings"] }),
+  });
+}
+
+// ---- Channel formats (platform -> pixels) ----
+export interface MmChannelFormat {
+  id: string;
+  platform: string;
+  width: number;
+  height: number;
+}
+
+export function useChannelFormats() {
+  return useQuery({
+    queryKey: ["mm_channel_formats"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mm_channel_formats").select("*").order("platform");
+      if (error) throw error;
+      return data as MmChannelFormat[];
+    },
+  });
+}
+
+export function useUpsertChannelFormat() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (format: { platform: string; width: number; height: number }) => {
+      const { error } = await supabase.from("mm_channel_formats").upsert(format, { onConflict: "platform" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_channel_formats"] }),
   });
 }
