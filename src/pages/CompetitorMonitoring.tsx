@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, TrendingUp, Lightbulb, ExternalLink, Linkedin, Twitter, Instagram, Search } from "lucide-react";
-import { useClients, useSettings } from "@/hooks/use-marketing-data";
+import { Loader2, TrendingUp, Lightbulb, ExternalLink, Linkedin, Twitter, Instagram, Search, Plus, FolderPlus } from "lucide-react";
+import { useClients, useSettings, useCampaigns, useCreateCampaign, useCreateTopics } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
 import {
@@ -68,16 +68,57 @@ function parseTrendingResponse(value: unknown): TrendingTopic[] {
 export default function CompetitorMonitoring() {
   const { data: clients } = useClients();
   const { data: settings } = useSettings();
+  const { data: campaigns } = useCampaigns();
+  const createCampaign = useCreateCampaign();
+  const createTopics = useCreateTopics();
   const { toast } = useToast();
 
   const [selectedClientId, setSelectedClientId] = useState("");
   const [niche, setNiche] = useState("");
   const [loading, setLoading] = useState(false);
   const [trends, setTrends] = useState<TrendingTopic[]>([]);
+  const [targetCampaignId, setTargetCampaignId] = useState("new");
+  const [converting, setConverting] = useState(false);
 
   const selectedClient = clients?.find((c) => c.id === selectedClientId);
+  const clientCampaigns = campaigns?.filter((c) => c.client_id === selectedClientId) || [];
   const webhookUrl = settings?.webhook_trending_topics;
   const hasWebhook = !!webhookUrl?.trim();
+
+  // Zet trends om naar voorraad-hooks onder een campagne; de scheduler werkt ze
+  // op de eerstvolgende tijdslots automatisch uit tot complete posts.
+  const handleConvert = async (toConvert: TrendingTopic[]) => {
+    if (!selectedClient) {
+      toast({ title: "Kies eerst een klant", description: "Trends worden voorraad binnen een campagne van die klant.", variant: "destructive" });
+      return;
+    }
+    if (toConvert.length === 0) return;
+    setConverting(true);
+    try {
+      let campaignId = targetCampaignId;
+      let campaignTheme = "";
+      if (targetCampaignId === "new") {
+        const theme = niche.trim() || `Trends ${new Date().toLocaleDateString("nl-NL")}`;
+        const campaign = await createCampaign.mutateAsync({ client_id: selectedClient.id, theme });
+        campaignId = campaign.id;
+        campaignTheme = campaign.theme;
+        setTargetCampaignId(campaign.id);
+      } else {
+        campaignTheme = clientCampaigns.find((c) => c.id === targetCampaignId)?.theme || "";
+      }
+      await createTopics.mutateAsync(
+        toConvert.map((t) => ({ campaign_id: campaignId, hook: t.topic, platform: t.platform })),
+      );
+      setTrends((prev) => prev.filter((t) => !toConvert.includes(t)));
+      toast({
+        title: `${toConvert.length} trend(s) toegevoegd aan voorraad`,
+        description: `Campagne "${campaignTheme}". Bekijk de funnel op Pipeline.`,
+      });
+    } catch (err) {
+      toast({ title: "Omzetten mislukt", description: getErrorMessage(err), variant: "destructive" });
+    }
+    setConverting(false);
+  };
 
   const handleFetchTrends = async () => {
     if (!hasWebhook) return;
@@ -168,10 +209,43 @@ export default function CompetitorMonitoring() {
 
       {trends.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-primary" />
-            {trends.length} trending topics gevonden
-          </h2>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-primary" />
+              {trends.length} trending topics gevonden
+            </h2>
+          </div>
+
+          <Card className="bg-accent/30">
+            <CardContent className="flex flex-col sm:flex-row sm:items-end gap-3 py-3 px-4">
+              <div className="flex-1">
+                <Label className="text-xs">Omzetten naar campagne</Label>
+                <Select value={targetCampaignId} onValueChange={setTargetCampaignId}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">➕ Nieuwe campagne{niche.trim() ? ` ("${niche.trim()}")` : ""}</SelectItem>
+                    {clientCampaigns.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.theme} (voorraad aanvullen)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => handleConvert(trends)}
+                disabled={converting || !selectedClient}
+                className="gradient-primary border-0 text-primary-foreground hover:opacity-90"
+              >
+                {converting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FolderPlus className="h-4 w-4 mr-2" />}
+                Alle {trends.length} naar campagne
+              </Button>
+            </CardContent>
+          </Card>
+          {!selectedClient && (
+            <p className="text-xs text-muted-foreground">⚠️ Kies bovenaan een klant om trends om te zetten naar een campagne.</p>
+          )}
+
           <div className="grid gap-3">
             {trends.map((trend, i) => {
               const Icon = platformIcons[trend.platform] || TrendingUp;
@@ -189,10 +263,20 @@ export default function CompetitorMonitoring() {
                       )}
                     </div>
                     {trend.source && (
-                      <a href={trend.source} target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary">
+                      <a href={trend.source} target="_blank" rel="noopener" className="text-muted-foreground hover:text-primary mt-0.5">
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={converting || !selectedClient}
+                      onClick={() => handleConvert([trend])}
+                      title="Deze trend naar de voorraad van de campagne"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </CardContent>
                 </Card>
               );
