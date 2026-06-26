@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, Plus, Trash2, Clock, Zap, Loader2 } from "lucide-react";
+import { RefreshCw, Plus, Trash2, Clock, Zap, Loader2, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useClients,
   useRecurringCampaigns,
@@ -66,6 +67,30 @@ export default function RecurringCampaigns() {
     linkedin_per_week: 5,
     instagram_per_week: 3,
   });
+
+  const [suggesting, setSuggesting] = useState(false);
+  const dialogClient = clients?.find((c) => c.id === form.client_id);
+
+  const suggestKeywords = async () => {
+    if (!dialogClient) { toast({ title: "Kies eerst een klant", variant: "destructive" }); return; }
+    setSuggesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-keywords", {
+        body: {
+          client_name: dialogClient.name, doelgroep: dialogClient.doelgroep, tone_of_voice: dialogClient.tone_of_voice,
+          branding: dialogClient.branding, theme: form.theme, onderwerp: form.onderwerp,
+        },
+      });
+      if (error) throw new Error(error.message);
+      const kws = (data as { keywords?: string[]; error?: string })?.keywords;
+      if (!kws?.length) throw new Error((data as { error?: string })?.error || "Geen suggesties terug.");
+      setForm((p) => ({ ...p, keywordsText: (p.keywordsText.trim() ? p.keywordsText.trim() + "\n" : "") + kws.join("\n") }));
+      toast({ title: `${kws.length} keyword-suggesties toegevoegd` });
+    } catch (err) {
+      toast({ title: "Suggesties mislukt", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    }
+    setSuggesting(false);
+  };
 
   const resetForm = () =>
     setForm({ client_id: "", theme: "", onderwerp: "", keywordsText: "", x_per_day: 5, linkedin_per_week: 5, instagram_per_week: 3 });
@@ -252,6 +277,9 @@ export default function RecurringCampaigns() {
             <DialogTitle>Nieuwe recurring campagne</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+            <p className="text-xs text-muted-foreground bg-accent/40 rounded-md p-2.5">
+              Een recurring campagne laat de scheduler automatisch en doorlopend posten op een vast ritme. Vul thema, onderwerp en ~10 invalshoeken in — daar rouleert hij doorheen. Is je voorraad leeg, dan genereert hij zelf verse posts op basis van het klantprofiel, je keywords en actueel nieuws.
+            </p>
             <div>
               <Label>Klant</Label>
               <Select value={form.client_id} onValueChange={(v) => setForm((p) => ({ ...p, client_id: v }))}>
@@ -267,18 +295,23 @@ export default function RecurringCampaigns() {
             </div>
             <div>
               <Label>Thema</Label>
-              <Input value={form.theme} onChange={(e) => setForm((p) => ({ ...p, theme: e.target.value }))} placeholder="Bijv. AI voor financieel adviseurs" />
+              <Input value={form.theme} onChange={(e) => setForm((p) => ({ ...p, theme: e.target.value }))} placeholder="Waar moet deze klant over praten?" />
             </div>
             <div>
               <Label>Onderwerp</Label>
-              <Input value={form.onderwerp} onChange={(e) => setForm((p) => ({ ...p, onderwerp: e.target.value }))} placeholder="Bijv. tijdwinst in het adviesgesprek" />
+              <Input value={form.onderwerp} onChange={(e) => setForm((p) => ({ ...p, onderwerp: e.target.value }))} placeholder="Specifieke insteek binnen het thema" />
             </div>
             <div>
-              <Label>Keywords / invalshoeken (één per regel of kommagescheiden, ~10)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Keywords / invalshoeken (één per regel, ~10)</Label>
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={suggestKeywords} disabled={suggesting || !form.client_id}>
+                  {suggesting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />} Genereer suggesties
+                </Button>
+              </div>
               <Textarea
                 value={form.keywordsText}
                 onChange={(e) => setForm((p) => ({ ...p, keywordsText: e.target.value }))}
-                placeholder={"ai hypotheekadvies\ngespreksverslag automatiseren\ncompliance en avg bij ai"}
+                placeholder={"Eén invalshoek per regel — of klik 'Genereer suggesties' voor klant-specifieke voorstellen."}
                 rows={5}
               />
             </div>

@@ -155,12 +155,12 @@ export default function Maken() {
           {campaignId === "new" && (
             <div>
               <Label>Thema</Label>
-              <Input value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Bijv. AI voor financieel adviseurs" />
+              <Input value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Waar moet deze klant over praten?" />
             </div>
           )}
           <div>
             <Label>Keyword / invalshoek (optioneel)</Label>
-            <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Bijv. gespreksverslag automatiseren" />
+            <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Optionele invalshoek voor deze ronde" />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={handleGenerate} disabled={!clientId || !effectiveTheme.trim() || genLoading} className="gradient-primary border-0 text-primary-foreground hover:opacity-90">
