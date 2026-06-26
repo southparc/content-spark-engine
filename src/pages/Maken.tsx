@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, TrendingUp, Loader2, Plus, Lightbulb, Linkedin, Twitter, Instagram, FileText, ExternalLink } from "lucide-react";
+import { Sparkles, TrendingUp, Loader2, Plus, Lightbulb, Linkedin, Twitter, Instagram, FileText, ExternalLink, Check, Trash2 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  useClients, useCampaigns, useCreateCampaign, useCreateTopics, useTopics, useSettings, type MmClient,
+  useClients, useCampaigns, useCreateCampaign, useCreateTopics, useTopics, useSettings, useUpdateTopic, useDeleteTopic, type MmClient,
 } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
@@ -39,6 +39,8 @@ export default function Maken() {
   const { data: settings } = useSettings();
   const createCampaign = useCreateCampaign();
   const createTopics = useCreateTopics();
+  const updateTopic = useUpdateTopic();
+  const deleteTopic = useDeleteTopic();
   const { toast } = useToast();
 
   const { activeClientId } = useActiveClient();
@@ -183,11 +185,31 @@ export default function Maken() {
           {campaignId !== "new" && voorraad.length === 0 && <Card className="border-dashed"><CardContent className="py-6 text-center text-xs text-muted-foreground">Nog geen onderwerpen. Genereer er hierboven.</CardContent></Card>}
           {voorraad.map((t) => {
             const Icon = platformIcons[t.platform] || FileText;
+            const approved = t.client_approved === true;
             return (
-              <Card key={t.id}>
+              <Card key={t.id} className={approved ? "ring-1 ring-primary/30" : ""}>
                 <CardContent className="p-3">
-                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground"><Icon className="h-3 w-3" /> {t.platform}</span>
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Icon className="h-3 w-3" /> {t.platform}
+                    {approved && <span className="ml-auto flex items-center gap-1 text-primary"><Check className="h-3 w-3" /> goedgekeurd</span>}
+                  </div>
                   <p className="text-xs text-foreground mt-1">{t.hook}</p>
+                  <div className="flex gap-1 mt-2">
+                    <button
+                      title={approved ? "Goedkeuring intrekken" : "Goedkeuren"}
+                      onClick={() => updateTopic.mutate({ id: t.id, client_approved: approved ? (null as any) : true })}
+                      className={`h-7 flex-1 rounded-md border border-border flex items-center justify-center transition-colors text-xs ${approved ? "bg-primary/10 text-primary" : "hover:bg-primary/10 text-muted-foreground"}`}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      title="Verwijderen"
+                      onClick={() => deleteTopic.mutate(t.id)}
+                      className="h-7 flex-1 rounded-md border border-border flex items-center justify-center transition-colors text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             );

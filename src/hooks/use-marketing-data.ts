@@ -208,7 +208,24 @@ export function useUpdateTopic() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["mm_topics"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mm_topics"] });
+      qc.invalidateQueries({ queryKey: ["mm_topics_all"] });
+    },
+  });
+}
+
+export function useDeleteTopic() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("mm_topics").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["mm_topics"] });
+      qc.invalidateQueries({ queryKey: ["mm_topics_all"] });
+    },
   });
 }
 
