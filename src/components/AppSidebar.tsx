@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Sparkles, Settings, History, FileText, Send, LogOut, Calendar, BarChart3, Image, TrendingUp, CheckCircle2, RefreshCw, GitBranch, MessageSquareText, UserCog } from "lucide-react";
+import { LayoutDashboard, Users, Sparkles, Settings, BarChart3, RefreshCw, ListChecks, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllTopics } from "@/hooks/use-marketing-data";
@@ -43,36 +43,17 @@ export function AppSidebar() {
     {
       label: "Vandaag",
       items: [
-        { title: "Dashboard", url: "/", icon: LayoutDashboard },
-        { title: "Pipeline", url: "/pipeline", icon: GitBranch },
-        { title: "Goedkeuring", url: "/goedkeuring", icon: CheckCircle2, badge: pendingCount },
-        { title: "Publiceren", url: "/publiceren", icon: Send },
-      ],
-    },
-    {
-      label: "Content",
-      items: [
-        { title: "Voorraad & campagne", url: "/campagne", icon: Sparkles },
-        { title: "Recurring", url: "/recurring", icon: RefreshCw },
-        { title: "Losse content", url: "/content", icon: FileText },
-        { title: "Kalender", url: "/kalender", icon: Calendar },
-      ],
-    },
-    {
-      label: "Inzicht",
-      items: [
-        { title: "Analytics", url: "/analytics", icon: BarChart3 },
-        { title: "Trends", url: "/trends", icon: TrendingUp },
-        { title: "Geschiedenis", url: "/geschiedenis", icon: History },
+        { title: "Vandaag", url: "/", icon: LayoutDashboard },
+        { title: "Maken", url: "/maken", icon: Sparkles },
+        { title: "Wachtrij", url: "/wachtrij", icon: ListChecks, badge: pendingCount },
       ],
     },
     {
       label: "Beheer",
       items: [
+        { title: "Campagnes", url: "/recurring", icon: RefreshCw },
         { title: "Klanten", url: "/klanten", icon: Users },
-        { title: "Klant-instellingen", url: "/instellingen/klanten", icon: UserCog },
-        { title: "Media", url: "/media", icon: Image },
-        { title: "Prompts", url: "/instellingen/prompts", icon: MessageSquareText },
+        { title: "Inzicht", url: "/inzicht", icon: BarChart3 },
         { title: "Instellingen", url: "/instellingen", icon: Settings },
       ],
     },

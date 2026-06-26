@@ -23,8 +23,8 @@ export default function Dashboard() {
   const activeRecurring = recurring?.filter((r) => r.active) ?? [];
 
   const stats = [
-    { label: "Wacht op goedkeuring", value: pending.length, icon: CheckCircle2, change: pending.length ? "Beoordeel ze bij Goedkeuring" : "Wachtrij is leeg", href: "/goedkeuring" },
-    { label: "Gepost deze week", value: postedThisWeek.length, icon: Send, change: "Via Buffer gepubliceerd", href: "/geschiedenis" },
+    { label: "Wacht op goedkeuring", value: pending.length, icon: CheckCircle2, change: pending.length ? "Beoordeel ze in de Wachtrij" : "Wachtrij is leeg", href: "/wachtrij" },
+    { label: "Gepost deze week", value: postedThisWeek.length, icon: Send, change: "Via Buffer gepubliceerd", href: "/inzicht" },
     { label: "Actieve campagnes", value: activeRecurring.length, icon: RefreshCw, change: activeRecurring.length ? "Scheduler draait 5 slots/dag" : "Maak een recurring campagne", href: "/recurring" },
     { label: "Klanten", value: clients?.length ?? 0, icon: Users, change: "Elk met eigen Buffer", href: "/klanten" },
   ];
@@ -61,8 +61,8 @@ export default function Dashboard() {
             <CardTitle className="text-lg">Zo werkt je dag</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <QuickAction step="1" title="Goedkeuren" description={pending.length ? `${pending.length} post(s) wachten op je beoordeling — bekijk tekst en beeld` : "Wachtrij is leeg; de scheduler vult hem op de tijdslots"} href="/goedkeuring" />
-            <QuickAction step="2" title="Voorraad bijvullen (optioneel)" description="Genereer hooks in een bestaande campagne; de scheduler gebruikt eerst jouw voorraad" href="/campagne" />
+            <QuickAction step="1" title="Goedkeuren" description={pending.length ? `${pending.length} post(s) wachten op je beoordeling — bekijk tekst en beeld` : "Wachtrij is leeg; de scheduler vult hem op de tijdslots"} href="/wachtrij" />
+            <QuickAction step="2" title="Voorraad bijvullen (optioneel)" description="Genereer hooks in een bestaande campagne; de scheduler gebruikt eerst jouw voorraad" href="/maken" />
             <QuickAction step="3" title="Campagnes bijsturen" description="Keywords, frequentie per platform en auto-publish per kanaal" href="/recurring" />
           </CardContent>
         </Card>

@@ -24,6 +24,9 @@ import CompetitorMonitoring from "@/pages/CompetitorMonitoring";
 import ApprovalWorkflow from "@/pages/ApprovalWorkflow";
 import RecurringCampaigns from "@/pages/RecurringCampaigns";
 import Pipeline from "@/pages/Pipeline";
+import Maken from "@/pages/Maken";
+import Wachtrij from "@/pages/Wachtrij";
+import Inzicht from "@/pages/Inzicht";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +53,9 @@ const App = () => (
                 <Route path="/trends" element={<CompetitorMonitoring />} />
                 <Route path="/goedkeuring" element={<ApprovalWorkflow />} />
                 <Route path="/pipeline" element={<Pipeline />} />
+                <Route path="/maken" element={<Maken />} />
+                <Route path="/wachtrij" element={<Wachtrij />} />
+                <Route path="/inzicht" element={<Inzicht />} />
                 <Route path="/recurring" element={<RecurringCampaigns />} />
                 <Route path="/geschiedenis" element={<Geschiedenis />} />
                 <Route path="/instellingen" element={<Instellingen />} />
