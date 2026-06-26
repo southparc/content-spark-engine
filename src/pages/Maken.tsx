@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   useClients, useCampaigns, useCreateCampaign, useCreateTopics, useTopics, useSettings, type MmClient,
 } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 import { invokeN8nWebhook, parseTopicsResponse, getErrorMessage } from "@/lib/n8n";
 
 const platformIcons: Record<string, any> = { linkedin: Linkedin, x: Twitter, instagram: Instagram };
@@ -40,13 +41,17 @@ export default function Maken() {
   const createTopics = useCreateTopics();
   const { toast } = useToast();
 
-  const [clientId, setClientId] = useState("");
+  const { activeClientId } = useActiveClient();
+  const clientId = activeClientId === ALL_CLIENTS ? "" : activeClientId;
   const [campaignId, setCampaignId] = useState("new");
   const [theme, setTheme] = useState("");
   const [keyword, setKeyword] = useState("");
   const [genLoading, setGenLoading] = useState(false);
   const [trendLoading, setTrendLoading] = useState(false);
   const [trends, setTrends] = useState<Trend[]>([]);
+
+  // Wisselt de actieve klant: campagnekeuze en trends resetten
+  useEffect(() => { setCampaignId("new"); setTrends([]); }, [clientId]);
 
   const client = clients?.find((c) => c.id === clientId) as MmClient | undefined;
   const clientCampaigns = campaigns?.filter((c) => c.client_id === clientId) || [];
@@ -132,24 +137,18 @@ export default function Maken() {
       <Card>
         <CardHeader><CardTitle className="text-lg">Onderwerpen genereren</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Klant</Label>
-              <Select value={clientId} onValueChange={(v) => { setClientId(v); setCampaignId("new"); setTrends([]); }}>
-                <SelectTrigger><SelectValue placeholder="Kies een klant..." /></SelectTrigger>
-                <SelectContent>{clients?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Campagne</Label>
-              <Select value={campaignId} onValueChange={setCampaignId} disabled={!clientId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">➕ Nieuwe campagne</SelectItem>
-                  {clientCampaigns.map((c) => <SelectItem key={c.id} value={c.id}>{c.theme}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          {!clientId && (
+            <p className="text-sm text-muted-foreground">Kies eerst een klant rechtsboven om onderwerpen te maken.</p>
+          )}
+          <div>
+            <Label>Campagne</Label>
+            <Select value={campaignId} onValueChange={setCampaignId} disabled={!clientId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">➕ Nieuwe campagne</SelectItem>
+                {clientCampaigns.map((c) => <SelectItem key={c.id} value={c.id}>{c.theme}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           {campaignId === "new" && (
             <div>

@@ -16,6 +16,7 @@ import {
   type MmRecurringCampaign,
 } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,9 @@ export default function RecurringCampaigns() {
   const updateRecurring = useUpdateRecurringCampaign();
   const deleteRecurring = useDeleteRecurringCampaign();
   const { toast } = useToast();
+  const { activeClientId } = useActiveClient();
+
+  const shownCampaigns = activeClientId === ALL_CLIENTS ? campaigns : campaigns?.filter((c) => c.client_id === activeClientId);
 
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({
@@ -121,7 +125,7 @@ export default function RecurringCampaigns() {
           <h1 className="text-2xl font-bold text-foreground">Recurring Campaigns</h1>
           <p className="text-muted-foreground">Vijf tijdslots per dag (08:30 · 11:00 · 13:30 · 16:00 · 19:30), per platform een eigen ritme</p>
         </div>
-        <Button onClick={() => setShowDialog(true)} className="gradient-primary border-0 text-primary-foreground hover:opacity-90">
+        <Button onClick={() => { setForm((f) => ({ ...f, client_id: activeClientId === ALL_CLIENTS ? "" : activeClientId })); setShowDialog(true); }} className="gradient-primary border-0 text-primary-foreground hover:opacity-90">
           <Plus className="h-4 w-4 mr-2" /> Nieuwe campagne
         </Button>
       </div>
@@ -134,7 +138,7 @@ export default function RecurringCampaigns() {
         </Card>
       )}
 
-      {!isLoading && (campaigns?.length ?? 0) === 0 && (
+      {!isLoading && (shownCampaigns?.length ?? 0) === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <RefreshCw className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
@@ -144,7 +148,7 @@ export default function RecurringCampaigns() {
       )}
 
       <div className="grid gap-4">
-        {campaigns?.map((c) => {
+        {shownCampaigns?.map((c) => {
           const client = clients?.find((cl) => cl.id === c.client_id);
           const keywords = c.keywords || [];
           const nextKeyword = keywords.length ? keywords[(c.keyword_index || 0) % keywords.length] : c.keyword;

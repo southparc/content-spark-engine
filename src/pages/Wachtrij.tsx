@@ -10,6 +10,7 @@ import {
   useAllTopics, useCampaigns, useClients, useSettings, useUpdateTopic, type MmTopic,
 } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 import { getErrorMessage, invokeN8nWebhook } from "@/lib/n8n";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -49,6 +50,7 @@ export default function Wachtrij() {
   const { data: settings } = useSettings();
   const updateTopic = useUpdateTopic();
   const { toast } = useToast();
+  const { activeClientId } = useActiveClient();
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [regenId, setRegenId] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function Wachtrij() {
     return clients?.find((cl) => cl.id === c?.client_id);
   };
 
-  const all = topics ?? [];
+  const all = (topics ?? []).filter((t) => activeClientId === ALL_CLIENTS || clientFor(t)?.id === activeClientId);
   const teBeoordelen = all.filter((t) => t.generated_content && !t.posted_at && t.client_approved == null);
   const goedgekeurd = all.filter((t) => t.generated_content && !t.posted_at && t.client_approved === true);
   const afgekeurd = all.filter((t) => t.generated_content && !t.posted_at && t.client_approved === false);

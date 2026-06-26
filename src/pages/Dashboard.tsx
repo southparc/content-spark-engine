@@ -2,7 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Users, Send, CheckCircle2, RefreshCw, Linkedin, Twitter, Instagram, FileText } from "lucide-react";
-import { useClients, useAllTopics, useRecurringCampaigns } from "@/hooks/use-marketing-data";
+import { useClients, useAllTopics, useRecurringCampaigns, useCampaigns } from "@/hooks/use-marketing-data";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 
 const platformIcons: Record<string, any> = {
   linkedin: Linkedin,
@@ -12,15 +13,22 @@ const platformIcons: Record<string, any> = {
 
 export default function Dashboard() {
   const { data: clients, isLoading: loadingClients } = useClients();
-  const { data: topics, isLoading: loadingTopics } = useAllTopics();
+  const { data: allTopics, isLoading: loadingTopics } = useAllTopics();
   const { data: recurring, isLoading: loadingRecurring } = useRecurringCampaigns();
+  const { data: campaigns } = useCampaigns();
+  const { activeClientId } = useActiveClient();
 
   const loading = loadingClients || loadingTopics || loadingRecurring;
+
+  const clientIdForTopic = (campaignId: string) => campaigns?.find((c) => c.id === campaignId)?.client_id;
+  const topics = activeClientId === ALL_CLIENTS
+    ? allTopics
+    : allTopics?.filter((t) => clientIdForTopic(t.campaign_id) === activeClientId);
 
   const pending = topics?.filter((t) => t.generated_content && !t.posted_at && t.client_approved !== true) ?? [];
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const postedThisWeek = topics?.filter((t) => t.posted_at && new Date(t.posted_at) > weekAgo) ?? [];
-  const activeRecurring = recurring?.filter((r) => r.active) ?? [];
+  const activeRecurring = (recurring?.filter((r) => r.active) ?? []).filter((r) => activeClientId === ALL_CLIENTS || r.client_id === activeClientId);
 
   const stats = [
     { label: "Wacht op goedkeuring", value: pending.length, icon: CheckCircle2, change: pending.length ? "Beoordeel ze in de Wachtrij" : "Wachtrij is leeg", href: "/wachtrij" },
