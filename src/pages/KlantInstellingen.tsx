@@ -52,6 +52,7 @@ export default function KlantInstellingen() {
     tone_of_voice: "",
     hashtags: "",
     branding: "",
+    banner_color: "",
     cta_url: "",
     lead_magnet: "",
     buffer_token: "",
@@ -75,6 +76,7 @@ export default function KlantInstellingen() {
         tone_of_voice: client.tone_of_voice ?? "",
         hashtags: client.hashtags ?? "",
         branding: client.branding ?? "",
+        banner_color: client.banner_color ?? "",
         cta_url: client.cta_url ?? "",
         lead_magnet: client.lead_magnet ?? "",
         buffer_token: client.buffer_token ?? "",
@@ -137,6 +139,7 @@ export default function KlantInstellingen() {
       tone_of_voice: form.tone_of_voice,
       hashtags: form.hashtags,
       branding: form.branding,
+      banner_color: form.banner_color || null,
       cta_url: form.cta_url,
       lead_magnet: form.lead_magnet,
       buffer_token: form.buffer_token,
@@ -217,6 +220,23 @@ export default function KlantInstellingen() {
               <Label>Branding</Label>
               <Input value={form.branding} onChange={(e) => setForm((p) => ({ ...p, branding: e.target.value }))} />
             </div>
+          </div>
+          <div>
+            <Label>Kleur van de klantbanner</Label>
+            <div className="flex items-center gap-3 mt-1">
+              <input
+                type="color"
+                value={form.banner_color || "#1a3a5f"}
+                onChange={(e) => setForm((p) => ({ ...p, banner_color: e.target.value }))}
+                className="h-9 w-12 rounded border border-border bg-transparent p-0.5 cursor-pointer"
+                aria-label="Bannerkleur"
+              />
+              <Input value={form.banner_color} onChange={(e) => setForm((p) => ({ ...p, banner_color: e.target.value }))} placeholder="#1a3a5f" className="max-w-[140px]" />
+              {form.banner_color && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setForm((p) => ({ ...p, banner_color: "" }))}>wissen</Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Tint de balk bovenaan en de stip bij de klantnaam. Leeg = neutraal.</p>
           </div>
         </CardContent>
       </Card>

@@ -22,6 +22,7 @@ export interface MmClient {
   img_negative_prompt?: string | null;
   brand_colors?: string[] | null;
   img_seed?: number | null;
+  banner_color?: string | null;
   created_at: string;
   updated_at: string;
 }
