@@ -78,7 +78,7 @@ export default function Analytics() {
       };
     });
 
-    return { total, posted, approved, withContent, byPlatform, byClient, weeklyData };
+    return { total, posted, approved, withContent, byPlatform, byClient, weeklyData, campaignCount: allowedCampaignIds.size };
   }, [allTopics, campaigns, clients, activeClientId]);
 
   const pieData = stats?.byPlatform.map((p) => ({
@@ -107,7 +107,7 @@ export default function Analytics() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={FileText} label="Totaal topics" value={stats.total} sub={`${campaigns?.length ?? 0} campagnes`} />
+            <StatCard icon={FileText} label="Totaal topics" value={stats.total} sub={`${stats.campaignCount} campagnes`} />
             <StatCard icon={CheckCircle2} label="Content gegenereerd" value={stats.withContent} sub={`${Math.round((stats.withContent / Math.max(stats.total, 1)) * 100)}% van totaal`} />
             <StatCard icon={Send} label="Gepubliceerd" value={stats.posted} sub={`${Math.round((stats.posted / Math.max(stats.total, 1)) * 100)}% van totaal`} />
             <StatCard icon={TrendingUp} label="Goedgekeurd" value={stats.approved} sub="Klaar voor content" />
