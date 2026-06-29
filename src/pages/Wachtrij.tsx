@@ -11,7 +11,7 @@ import {
 } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
-import { getErrorMessage, invokeN8nWebhook } from "@/lib/n8n";
+import { getErrorMessage, callWebhook } from "@/lib/webhooks";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -25,7 +25,7 @@ const platformIcons: Record<string, any> = {
 
 // Publiceert via de post-webhook (Kestra/Buffer) en controleert de Buffer-respons.
 async function publishViaWebhook(webhookUrl: string, topic: MmTopic, clientId: string, clientName: string, channelId: string, campaignTheme?: string) {
-  const data = await invokeN8nWebhook({
+  const data = await callWebhook({
     webhookUrl,
     allowEmptyResponse: true,
     payload: {

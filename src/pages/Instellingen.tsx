@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, ExternalLink, Loader2, ImageIcon, ChevronRight } from "lucide-react";
+import { Save, Loader2, ImageIcon, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSettings, useUpdateSetting } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +54,7 @@ export default function Instellingen() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Instellingen</h1>
-        <p className="text-muted-foreground">Configureer je n8n webhooks en API keys</p>
+        <p className="text-muted-foreground">Webhooks, integraties en automatisering</p>
       </div>
 
       <Link to="/instellingen/beeld">
@@ -72,34 +72,32 @@ export default function Instellingen() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">n8n Webhook URLs</CardTitle>
+          <CardTitle className="text-lg">Endpoints</CardTitle>
           <CardDescription>
-            Voer de Production webhook URLs in van je n8n workflows.{" "}
-            <a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/" target="_blank" rel="noopener" className="text-primary hover:underline inline-flex items-center gap-1">
-              Documentatie <ExternalLink className="h-3 w-3" />
-            </a>
+            Content-generatie draait op Supabase edge functions; publicatie loopt via een Kestra-flow.
+            Deze URL's staan normaal goed — alleen aanpassen als een endpoint verhuist.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>n8n Base URL</Label>
-            <Input value={local.n8n_base_url ?? ""} onChange={(e) => update("n8n_base_url", e.target.value)} placeholder="https://jouw-n8n.app.n8n.cloud" />
+            <Label>Topics genereren (edge function)</Label>
+            <Input value={local.webhook_generate_topics ?? ""} onChange={(e) => update("webhook_generate_topics", e.target.value)} placeholder="https://<project>.supabase.co/functions/v1/generate-topics" />
           </div>
           <div>
-            <Label>Webhook: Topics genereren</Label>
-            <Input value={local.webhook_generate_topics ?? ""} onChange={(e) => update("webhook_generate_topics", e.target.value)} placeholder="https://jouw-n8n.../webhook/generate-topics" />
+            <Label>Content genereren (edge function)</Label>
+            <Input value={local.webhook_generate_content ?? ""} onChange={(e) => update("webhook_generate_content", e.target.value)} placeholder="https://<project>.supabase.co/functions/v1/generate-content" />
           </div>
           <div>
-            <Label>Webhook: Content genereren</Label>
-            <Input value={local.webhook_generate_content ?? ""} onChange={(e) => update("webhook_generate_content", e.target.value)} placeholder="https://jouw-n8n.../webhook/generate-content" />
+            <Label>Longread genereren (edge function)</Label>
+            <Input value={local.webhook_generate_longread ?? ""} onChange={(e) => update("webhook_generate_longread", e.target.value)} placeholder="https://<project>.supabase.co/functions/v1/generate-longread" />
           </div>
           <div>
-            <Label>Webhook: Posten</Label>
-            <Input value={local.webhook_post ?? ""} onChange={(e) => update("webhook_post", e.target.value)} placeholder="https://jouw-n8n.../webhook/post" />
+            <Label>Trends ophalen (edge function)</Label>
+            <Input value={local.webhook_trending_topics ?? ""} onChange={(e) => update("webhook_trending_topics", e.target.value)} placeholder="https://<project>.supabase.co/functions/v1/generate-trends" />
           </div>
           <div>
-            <Label>Webhook: Trending topics</Label>
-            <Input value={local.webhook_trending_topics ?? ""} onChange={(e) => update("webhook_trending_topics", e.target.value)} placeholder="https://jouw-n8n.../webhook/trending-topics" />
+            <Label>Posten naar Buffer (Kestra-flow)</Label>
+            <Input value={local.webhook_post ?? ""} onChange={(e) => update("webhook_post", e.target.value)} placeholder="https://flow.southparc.nl/api/v1/executions/webhook/southparc.mm/post-to-buffer/..." />
           </div>
         </CardContent>
       </Card>
@@ -107,7 +105,7 @@ export default function Instellingen() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Buffer Channel IDs</CardTitle>
-          <CardDescription>De Buffer channel-ID per platform die n8n gebruikt om te posten.</CardDescription>
+          <CardDescription>De Buffer channel-ID per platform die gebruikt wordt voor publicatie.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>

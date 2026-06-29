@@ -7,7 +7,7 @@ import { useSettings, useCampaigns, useTopics, useUpdateTopic, type MmTopic } fr
 import { useClients } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getErrorMessage, invokeN8nWebhook } from "@/lib/n8n";
+import { getErrorMessage, callWebhook } from "@/lib/webhooks";
 import {
   Select,
   SelectContent,
@@ -31,7 +31,7 @@ async function publishViaN8n(
   bufferProfileId: string,
   campaignTheme?: string,
 ): Promise<void> {
-  const data = await invokeN8nWebhook({
+  const data = await callWebhook({
     webhookUrl,
     allowEmptyResponse: true,
     payload: {

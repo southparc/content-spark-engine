@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Loader2, RefreshCw, Save, Linkedin, Twitter, Instagram } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCw, Save, Linkedin, Twitter, Instagram, Upload } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useClients, useUpdateClient, useSettings } from "@/hooks/use-marketing-data";
-import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
+import { callWebhook, getErrorMessage } from "@/lib/webhooks";
+import { supabase } from "@/integrations/supabase/client";
 import { IMAGE_PROVIDERS, IMAGE_MODELS, IMAGE_QUALITIES } from "@/lib/image-options";
 import { useToast } from "@/hooks/use-toast";
 
@@ -55,6 +56,7 @@ export default function KlantInstellingen() {
     banner_color: "",
     cta_url: "",
     lead_magnet: "",
+    lead_magnet_url: "",
     buffer_token: "",
     buffer_profiles: {} as Record<string, string>,
     img_provider: USE_GLOBAL,
@@ -67,6 +69,29 @@ export default function KlantInstellingen() {
   });
   const [channels, setChannels] = useState<BufferChannel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(false);
+  const [uploadingEbook, setUploadingEbook] = useState(false);
+
+  // Upload een e-book/gids naar de publieke downloads-bucket en zet de URL in het formulier.
+  const handleEbookUpload = async (file: File) => {
+    if (!id) return;
+    setUploadingEbook(true);
+    try {
+      const ext = (file.name.split(".").pop() || "pdf").toLowerCase();
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${id}/${Date.now()}-${safe}`;
+      const { error } = await supabase.storage
+        .from("mm-downloads")
+        .upload(path, file, { upsert: true, contentType: file.type || "application/pdf" });
+      if (error) throw error;
+      const { data } = supabase.storage.from("mm-downloads").getPublicUrl(path);
+      setForm((p) => ({ ...p, lead_magnet_url: data.publicUrl }));
+      toast({ title: "E-book geüpload", description: "Klik op Opslaan om het vast te leggen.", });
+      void ext;
+    } catch (err) {
+      toast({ title: "Upload mislukt", description: getErrorMessage(err), variant: "destructive" });
+    }
+    setUploadingEbook(false);
+  };
 
   useEffect(() => {
     if (client) {
@@ -79,6 +104,7 @@ export default function KlantInstellingen() {
         banner_color: client.banner_color ?? "",
         cta_url: client.cta_url ?? "",
         lead_magnet: client.lead_magnet ?? "",
+        lead_magnet_url: client.lead_magnet_url ?? "",
         buffer_token: client.buffer_token ?? "",
         buffer_profiles: (client.buffer_profiles as Record<string, string>) ?? {},
         img_provider: client.img_provider || USE_GLOBAL,
@@ -106,7 +132,7 @@ export default function KlantInstellingen() {
     }
     setLoadingChannels(true);
     try {
-      const data = await invokeN8nWebhook({ webhookUrl: webhook, payload: { client_id: id } });
+      const data = await callWebhook({ webhookUrl: webhook, payload: { client_id: id } });
       const list = (data && typeof data === "object" ? (data as { channels?: BufferChannel[] }).channels : []) || [];
       if (!list.length) throw new Error("Geen kanalen gevonden — klopt het token en zijn er kanalen gekoppeld in Buffer?");
       setChannels(list);
@@ -142,6 +168,7 @@ export default function KlantInstellingen() {
       banner_color: form.banner_color || null,
       cta_url: form.cta_url,
       lead_magnet: form.lead_magnet,
+      lead_magnet_url: form.lead_magnet_url || null,
       buffer_token: form.buffer_token,
       buffer_profiles: form.buffer_profiles,
       // Beeld-overrides: sentinel/leeg => null (val terug op globale default)
@@ -244,16 +271,47 @@ export default function KlantInstellingen() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Conversie</CardTitle>
-          <CardDescription>Posts sluiten af met deze link, automatisch met UTM-tracking per platform en campagne</CardDescription>
+          <CardDescription>
+            Twee soorten call-to-action: een afspraak/contactlink en (optioneel) een downloadbaar e-book.
+            De AI belooft alléén een download als hieronder een e-book staat — anders wordt de link als afspraak gebracht.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>CTA-link (afspraak- of downloadpagina)</Label>
-            <Input type="url" value={form.cta_url} onChange={(e) => setForm((p) => ({ ...p, cta_url: e.target.value }))} placeholder="https://..." />
+            <Label>Afspraak- / contactlink</Label>
+            <Input type="url" value={form.cta_url} onChange={(e) => setForm((p) => ({ ...p, cta_url: e.target.value }))} placeholder="https://... (bijv. afsprakenpagina)" />
+            <p className="text-xs text-muted-foreground mt-1">Gebruikt als uitnodiging voor een kennismaking of afspraak. Krijgt automatisch UTM-tracking per platform en campagne.</p>
           </div>
-          <div>
-            <Label>Lead magnet (wat de lezer daar krijgt)</Label>
-            <Textarea rows={2} value={form.lead_magnet} onChange={(e) => setForm((p) => ({ ...p, lead_magnet: e.target.value }))} placeholder="Bijv. gratis AI-gids voor oriëntatie..." />
+
+          <div className="border-t pt-4 space-y-3">
+            <div>
+              <Label>E-book / gids (download) — optioneel</Label>
+              <p className="text-xs text-muted-foreground mt-1">Upload een PDF of plak een directe download-URL. Zolang dit leeg is, belooft de AI géén e-book in de posts.</p>
+            </div>
+            <Input type="url" value={form.lead_magnet_url} onChange={(e) => setForm((p) => ({ ...p, lead_magnet_url: e.target.value }))} placeholder="https://... directe download-link" />
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                id="ebook-file"
+                type="file"
+                accept=".pdf,.epub,application/pdf"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleEbookUpload(f); e.target.value = ""; }}
+              />
+              <Button type="button" variant="outline" size="sm" disabled={uploadingEbook} onClick={() => document.getElementById("ebook-file")?.click()}>
+                {uploadingEbook ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                PDF uploaden
+              </Button>
+              {form.lead_magnet_url && (
+                <>
+                  <a href={form.lead_magnet_url} target="_blank" rel="noopener" className="text-xs text-primary underline">huidig bestand bekijken</a>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setForm((p) => ({ ...p, lead_magnet_url: "" }))}>wissen</Button>
+                </>
+              )}
+            </div>
+            <div>
+              <Label className="text-xs">Omschrijving (wat de lezer krijgt)</Label>
+              <Textarea rows={2} value={form.lead_magnet} onChange={(e) => setForm((p) => ({ ...p, lead_magnet: e.target.value }))} placeholder="Bijv. gratis gids 'Beleggen voor beginners'..." />
+            </div>
           </div>
         </CardContent>
       </Card>

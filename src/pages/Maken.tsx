@@ -13,7 +13,7 @@ import {
 } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
 import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
-import { invokeN8nWebhook, parseTopicsResponse, getErrorMessage } from "@/lib/n8n";
+import { callWebhook, parseTopicsResponse, getErrorMessage } from "@/lib/webhooks";
 
 const platformIcons: Record<string, any> = { linkedin: Linkedin, x: Twitter, instagram: Instagram };
 
@@ -81,7 +81,7 @@ export default function Maken() {
     setGenLoading(true);
     try {
       const cid = await ensureCampaign();
-      const data = await invokeN8nWebhook({
+      const data = await callWebhook({
         webhookUrl: webhook,
         payload: {
           client_name: client.name, doelgroep: client.doelgroep, tone_of_voice: client.tone_of_voice,
@@ -104,7 +104,7 @@ export default function Maken() {
     if (!webhook?.trim()) { toast({ title: "Geen trends-webhook ingesteld", variant: "destructive" }); return; }
     setTrendLoading(true);
     try {
-      const data = await invokeN8nWebhook({
+      const data = await callWebhook({
         webhookUrl: webhook,
         payload: { client_name: client.name, doelgroep: client.doelgroep, branding: client.branding, niche: effectiveTheme || client.doelgroep, platforms: ["linkedin", "x", "instagram"] },
       });

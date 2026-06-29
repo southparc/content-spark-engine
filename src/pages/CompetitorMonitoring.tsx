@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, TrendingUp, Lightbulb, ExternalLink, Linkedin, Twitter, Instagram, Search, Plus, FolderPlus } from "lucide-react";
 import { useClients, useSettings, useCampaigns, useCreateCampaign, useCreateTopics } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
-import { invokeN8nWebhook, getErrorMessage } from "@/lib/n8n";
+import { callWebhook, getErrorMessage } from "@/lib/webhooks";
 import {
   Select,
   SelectContent,
@@ -124,7 +124,7 @@ export default function CompetitorMonitoring() {
     if (!hasWebhook) return;
     setLoading(true);
     try {
-      const data = await invokeN8nWebhook({
+      const data = await callWebhook({
         webhookUrl: webhookUrl!,
         payload: {
           client_name: selectedClient?.name || "",
@@ -136,7 +136,7 @@ export default function CompetitorMonitoring() {
       });
       const parsed = parseTrendingResponse(data);
       if (parsed.length === 0) {
-        toast({ title: "Geen trends gevonden", description: "n8n gaf geen bruikbare trending topics terug.", variant: "destructive" });
+        toast({ title: "Geen trends gevonden", description: "Er kwamen geen bruikbare trending topics terug.", variant: "destructive" });
       } else {
         setTrends(parsed);
         toast({ title: `${parsed.length} trending topics gevonden!` });

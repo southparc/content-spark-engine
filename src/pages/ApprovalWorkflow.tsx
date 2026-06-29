@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Linkedin, Twitter, Instagram, FileText, CheckCircle2, XCircle, MessageSquare, Eye, Clock, RefreshCw, Loader2 } from "lucide-react";
 import { useCampaigns, useTopics, useUpdateTopic, useClients, type MmTopic } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage } from "@/lib/n8n";
+import { getErrorMessage } from "@/lib/webhooks";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,

@@ -12,6 +12,7 @@ export interface MmClient {
   cta_url: string;
   read_url?: string;
   lead_magnet: string;
+  lead_magnet_url?: string | null;
   buffer_token: string;
   buffer_profiles?: Record<string, string>;
   // Beeld-overrides (leeg/null = globale default uit mm_image_settings)
