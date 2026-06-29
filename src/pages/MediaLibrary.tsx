@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Image, Upload, Trash2, Copy, Check, Search, Film, FileImage } from "lucide-react";
 import { useClients, useMediaItems, useCreateMediaItem, useDeleteMediaItem, type MmMediaItem } from "@/hooks/use-marketing-data";
+import { useActiveClient } from "@/hooks/use-active-client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -23,7 +24,7 @@ export default function MediaLibrary() {
   const deleteMedia = useDeleteMediaItem();
   const { toast } = useToast();
 
-  const [filterClient, setFilterClient] = useState<string>("all");
+  const { activeClientId: filterClient, setActiveClientId: setFilterClient } = useActiveClient();
   const [filterType, setFilterType] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, Linkedin, Twitter, Instagram, FileText, Send, CheckCircle2 } from "lucide-react";
 import { useClients, useCampaigns, useAllTopics } from "@/hooks/use-marketing-data";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const COLORS = {
@@ -22,25 +23,31 @@ export default function Analytics() {
   const { data: clients } = useClients();
   const { data: campaigns, isLoading: loadingCampaigns } = useCampaigns();
   const { data: allTopics, isLoading: loadingTopics } = useAllTopics();
+  const { activeClientId } = useActiveClient();
 
   const isLoading = loadingCampaigns || loadingTopics;
 
   const stats = useMemo(() => {
     if (!allTopics || !campaigns) return null;
 
-    const total = allTopics.length;
-    const posted = allTopics.filter((t) => t.posted_at).length;
-    const approved = allTopics.filter((t) => t.status === "approved").length;
-    const withContent = allTopics.filter((t) => t.generated_content).length;
+    // Scope op de actieve klant
+    const clientList = activeClientId === ALL_CLIENTS ? clients : clients?.filter((c) => c.id === activeClientId);
+    const allowedCampaignIds = new Set((campaigns).filter((c) => activeClientId === ALL_CLIENTS || c.client_id === activeClientId).map((c) => c.id));
+    const topics = activeClientId === ALL_CLIENTS ? allTopics : allTopics.filter((t) => allowedCampaignIds.has(t.campaign_id));
+
+    const total = topics.length;
+    const posted = topics.filter((t) => t.posted_at).length;
+    const approved = topics.filter((t) => t.status === "approved").length;
+    const withContent = topics.filter((t) => t.generated_content).length;
 
     const byPlatform = ["linkedin", "x", "instagram"].map((p) => ({
       platform: p,
-      total: allTopics.filter((t) => t.platform === p).length,
-      posted: allTopics.filter((t) => t.platform === p && t.posted_at).length,
-      content: allTopics.filter((t) => t.platform === p && t.generated_content).length,
+      total: topics.filter((t) => t.platform === p).length,
+      posted: topics.filter((t) => t.platform === p && t.posted_at).length,
+      content: topics.filter((t) => t.platform === p && t.generated_content).length,
     }));
 
-    const byClient = clients?.map((client) => {
+    const byClient = clientList?.map((client) => {
       const clientCampaignIds = campaigns
         .filter((c) => c.client_id === client.id)
         .map((c) => c.id);
@@ -60,7 +67,7 @@ export default function Analytics() {
       weekStart.setDate(weekStart.getDate() - (7 - i) * 7);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 7);
-      const count = allTopics.filter((t) => {
+      const count = topics.filter((t) => {
         if (!t.posted_at) return false;
         const d = new Date(t.posted_at);
         return d >= weekStart && d < weekEnd;
@@ -72,7 +79,7 @@ export default function Analytics() {
     });
 
     return { total, posted, approved, withContent, byPlatform, byClient, weeklyData };
-  }, [allTopics, campaigns, clients]);
+  }, [allTopics, campaigns, clients, activeClientId]);
 
   const pieData = stats?.byPlatform.map((p) => ({
     name: p.platform,

@@ -3,12 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { History } from "lucide-react";
 import { useCampaigns, useClients } from "@/hooks/use-marketing-data";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 import { formatDistanceToNow } from "date-fns";
 import { nl } from "date-fns/locale";
 
 export default function Geschiedenis() {
-  const { data: campaigns, isLoading } = useCampaigns();
+  const { data: allCampaigns, isLoading } = useCampaigns();
   const { data: clients } = useClients();
+  const { activeClientId } = useActiveClient();
+
+  const campaigns = activeClientId === ALL_CLIENTS ? allCampaigns : allCampaigns?.filter((c) => c.client_id === activeClientId);
 
   const clientName = (id: string) => clients?.find((c) => c.id === id)?.name ?? "Onbekend";
 

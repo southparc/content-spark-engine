@@ -1,7 +1,8 @@
 import { LayoutDashboard, Users, Sparkles, Settings, BarChart3, RefreshCw, ListChecks, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/use-auth";
-import { useAllTopics } from "@/hooks/use-marketing-data";
+import { useAllTopics, useCampaigns } from "@/hooks/use-marketing-data";
+import { useActiveClient, ALL_CLIENTS } from "@/hooks/use-active-client";
 import southparcLogo from "@/assets/southparc-logo.png.asset.json";
 import {
   Sidebar,
@@ -34,10 +35,16 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const { signOut, user } = useAuth();
   const { data: allTopics } = useAllTopics();
+  const { data: campaigns } = useCampaigns();
+  const { activeClientId } = useActiveClient();
 
-  // Aantal posts dat op goedkeuring wacht — het dagelijkse werk
+  // Aantal posts dat op goedkeuring wacht — gescopet op de actieve klant
+  const clientIdForTopic = (campaignId: string) => campaigns?.find((c) => c.id === campaignId)?.client_id;
   const pendingCount =
-    allTopics?.filter((t) => t.generated_content && !t.posted_at && t.client_approved !== true).length ?? 0;
+    (allTopics ?? []).filter((t) =>
+      t.generated_content && !t.posted_at && t.client_approved !== true &&
+      (activeClientId === ALL_CLIENTS || clientIdForTopic(t.campaign_id) === activeClientId)
+    ).length;
 
   const sections: NavSection[] = [
     {

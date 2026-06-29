@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight, Linkedin, Twitter, Instagram, FileText } from "lucide-react";
 import { useClients, useCampaigns, useAllTopics } from "@/hooks/use-marketing-data";
+import { useActiveClient } from "@/hooks/use-active-client";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -36,7 +37,7 @@ export default function ContentKalender() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [filterClient, setFilterClient] = useState<string>("all");
+  const { activeClientId: filterClient, setActiveClientId: setFilterClient } = useActiveClient();
 
   const filteredTopics = useMemo(() => {
     if (!allTopics) return [];
