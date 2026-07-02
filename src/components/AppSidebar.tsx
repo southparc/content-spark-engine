@@ -42,7 +42,7 @@ export function AppSidebar() {
   const clientIdForTopic = (campaignId: string) => campaigns?.find((c) => c.id === campaignId)?.client_id;
   const pendingCount =
     (allTopics ?? []).filter((t) =>
-      t.generated_content && !t.posted_at && t.client_approved !== true &&
+      t.generated_content && !t.posted_at && t.client_approved == null &&
       (activeClientId === ALL_CLIENTS || clientIdForTopic(t.campaign_id) === activeClientId)
     ).length;
 
