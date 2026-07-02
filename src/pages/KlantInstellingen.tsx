@@ -57,6 +57,9 @@ export default function KlantInstellingen() {
     cta_url: "",
     lead_magnet: "",
     lead_magnet_url: "",
+    feiten_bank: "",
+    voorbeeld_posts: "",
+    dos_donts: "",
     buffer_token: "",
     buffer_profiles: {} as Record<string, string>,
     img_provider: USE_GLOBAL,
@@ -105,6 +108,9 @@ export default function KlantInstellingen() {
         cta_url: client.cta_url ?? "",
         lead_magnet: client.lead_magnet ?? "",
         lead_magnet_url: client.lead_magnet_url ?? "",
+        feiten_bank: client.feiten_bank ?? "",
+        voorbeeld_posts: client.voorbeeld_posts ?? "",
+        dos_donts: client.dos_donts ?? "",
         buffer_token: client.buffer_token ?? "",
         buffer_profiles: (client.buffer_profiles as Record<string, string>) ?? {},
         img_provider: client.img_provider || USE_GLOBAL,
@@ -169,6 +175,9 @@ export default function KlantInstellingen() {
       cta_url: form.cta_url,
       lead_magnet: form.lead_magnet,
       lead_magnet_url: form.lead_magnet_url || null,
+      feiten_bank: form.feiten_bank.trim() || null,
+      voorbeeld_posts: form.voorbeeld_posts.trim() || null,
+      dos_donts: form.dos_donts.trim() || null,
       buffer_token: form.buffer_token,
       buffer_profiles: form.buffer_profiles,
       // Beeld-overrides: sentinel/leeg => null (val terug op globale default)
@@ -264,6 +273,32 @@ export default function KlantInstellingen() {
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Tint de balk bovenaan en de stip bij de klantnaam. Leeg = neutraal.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Content-DNA</CardTitle>
+          <CardDescription>
+            Voedt elke generatie. De feiten-bank is de enige bron waaruit de AI cijfers en claims mag gebruiken — zonder bron formuleert hij kwalitatief.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Feiten-bank (bewezen resultaten, USP's, cijfers mét bron)</Label>
+            <Textarea rows={4} value={form.feiten_bank} onChange={(e) => setForm((p) => ({ ...p, feiten_bank: e.target.value }))}
+              placeholder={"Bijv.:\n- Klanten besparen gemiddeld 3 uur per week (interne meting 2026)\n- 12 advieskantoren als klant\n- AVG-verwerkersovereenkomst standaard"} />
+          </div>
+          <div>
+            <Label>Voorbeeldposts die je goed vindt (stijlreferentie)</Label>
+            <Textarea rows={5} value={form.voorbeeld_posts} onChange={(e) => setForm((p) => ({ ...p, voorbeeld_posts: e.target.value }))}
+              placeholder={"Plak 2-3 posts (eigen of van anderen) waarvan je zegt: zó moet het klinken. De AI matcht de stijl, niet de inhoud."} />
+          </div>
+          <div>
+            <Label>Do's & don'ts</Label>
+            <Textarea rows={3} value={form.dos_donts} onChange={(e) => setForm((p) => ({ ...p, dos_donts: e.target.value }))}
+              placeholder={"Bijv.:\n- Nooit concurrenten noemen\n- Altijd 'intermediair', nooit 'tussenpersoon'\n- Geen angst-marketing"} />
           </div>
         </CardContent>
       </Card>

@@ -13,6 +13,10 @@ export interface MmClient {
   read_url?: string;
   lead_magnet: string;
   lead_magnet_url?: string | null;
+  // Content-DNA: voedt de generatie-prompts
+  feiten_bank?: string | null;
+  voorbeeld_posts?: string | null;
+  dos_donts?: string | null;
   buffer_token: string;
   buffer_profiles?: Record<string, string>;
   // Beeld-overrides (leeg/null = globale default uit mm_image_settings)
@@ -75,6 +79,10 @@ export interface MmTopic {
   media_url: string | null;
   client_approved: boolean | null;
   client_feedback: string | null;
+  // Contentmotor v2: invalshoek + redactie-score
+  angle: string | null;
+  quality_score: number | null;
+  quality_notes: string | null;
   posted_at: string | null;
   created_at: string;
 }
@@ -192,7 +200,7 @@ export function useTopics(campaignId?: string) {
 export function useCreateTopics() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (topics: { campaign_id: string; hook: string; platform: string }[]) => {
+    mutationFn: async (topics: { campaign_id: string; hook: string; platform: string; angle?: string | null }[]) => {
       const { data, error } = await supabase.from("mm_topics").insert(topics).select();
       if (error) throw error;
       return data as MmTopic[];

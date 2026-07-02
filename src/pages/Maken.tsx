@@ -84,14 +84,19 @@ export default function Maken() {
       const data = await callWebhook({
         webhookUrl: webhook,
         payload: {
+          // client_id: de edge function haalt hiermee zelf DNA, recente hooks (anti-herhaling) en afkeur-lessen op
+          client_id: client.id,
           client_name: client.name, doelgroep: client.doelgroep, tone_of_voice: client.tone_of_voice,
           hashtags: client.hashtags, branding: client.branding, theme: effectiveTheme,
           keyword: keyword || undefined, platforms: ["linkedin", "x", "instagram"],
         },
       });
       const raw = parseTopicsResponse(data);
-      await createTopics.mutateAsync(raw.map((t) => ({ campaign_id: cid, hook: t.hook, platform: t.platform })));
-      toast({ title: `${raw.length} onderwerpen toegevoegd aan voorraad` });
+      // Dubbele hooks binnen deze campagne tegenhouden
+      const bestaand = new Set((voorraadTopics || []).map((t) => t.hook.trim().toLowerCase()));
+      const nieuw = raw.filter((t) => !bestaand.has(t.hook.trim().toLowerCase()));
+      await createTopics.mutateAsync(nieuw.map((t) => ({ campaign_id: cid, hook: t.hook, platform: t.platform, angle: t.angle ?? null })));
+      toast({ title: `${nieuw.length} onderwerpen toegevoegd aan voorraad${nieuw.length < raw.length ? ` (${raw.length - nieuw.length} dubbele overgeslagen)` : ""}` });
     } catch (err) {
       toast({ title: "Genereren mislukt", description: getErrorMessage(err), variant: "destructive" });
     }
@@ -191,6 +196,7 @@ export default function Maken() {
                 <CardContent className="p-3">
                   <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Icon className="h-3 w-3" /> {t.platform}
+                    {t.angle && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal">{t.angle}</Badge>}
                     {approved && <span className="ml-auto flex items-center gap-1 text-primary"><Check className="h-3 w-3" /> goedgekeurd</span>}
                   </div>
                   <p className="text-xs text-foreground mt-1">{t.hook}</p>

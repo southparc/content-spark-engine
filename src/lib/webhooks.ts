@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface TopicDraft {
   hook: string;
   platform: "linkedin" | "x" | "instagram";
+  angle?: string | null;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -27,7 +28,8 @@ function normalizeTopic(item: unknown): TopicDraft | null {
     (value): value is string => typeof value === "string" && value.trim().length > 0,
   );
   if (!hook) return null;
-  return { hook, platform: normalizePlatform(item.platform) };
+  const angle = typeof item.angle === "string" && item.angle.trim() ? item.angle.trim().toLowerCase() : null;
+  return { hook, platform: normalizePlatform(item.platform), angle };
 }
 
 export function getErrorMessage(error: unknown): string {

@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Linkedin, Twitter, Instagram, FileText, CheckCircle2, XCircle, RefreshCw,
-  Loader2, Eye, Send, Clock, CircleDot,
+  Loader2, Eye, Send, Clock, CircleDot, Pencil, Save,
 } from "lucide-react";
 import {
   useAllTopics, useCampaigns, useClients, useSettings, useUpdateTopic, type MmTopic,
@@ -55,6 +56,13 @@ export default function Wachtrij() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [regenId, setRegenId] = useState<string | null>(null);
   const [preview, setPreview] = useState<MmTopic | null>(null);
+  const [editText, setEditText] = useState<string | null>(null); // null = niet aan het bewerken
+  // Afkeuren met reden: reden voedt toekomstige generaties (feedback-loop)
+  const [rejecting, setRejecting] = useState<MmTopic | null>(null);
+  const [rejectChips, setRejectChips] = useState<string[]>([]);
+  const [rejectText, setRejectText] = useState("");
+
+  const REJECT_REASONS = ["te verkoperig", "verkeerde toon", "cijfer klopt niet", "saai / nietszeggend", "onjuiste inhoud", "past niet bij klant"];
 
   const postWebhook = settings?.webhook_post;
 
@@ -70,14 +78,38 @@ export default function Wachtrij() {
   const afgekeurd = all.filter((t) => t.generated_content && !t.posted_at && t.client_approved === false);
   const gepost = [...all.filter((t) => t.posted_at)].sort((a, b) => (b.posted_at || "").localeCompare(a.posted_at || "")).slice(0, 12);
 
-  const setApproval = async (t: MmTopic, value: boolean) => {
+  const setApproval = async (t: MmTopic, value: boolean, feedback?: string) => {
     setBusyId(t.id);
     try {
-      await updateTopic.mutateAsync({ id: t.id, client_approved: value });
+      await updateTopic.mutateAsync({ id: t.id, client_approved: value, ...(feedback ? { client_feedback: feedback } : {}) });
       await refetch();
       toast({ title: value ? "Goedgekeurd" : "Afgekeurd" });
     } catch (err) {
       toast({ title: "Mislukt", description: getErrorMessage(err), variant: "destructive" });
+    }
+    setBusyId(null);
+  };
+
+  const confirmReject = async () => {
+    if (!rejecting) return;
+    const reason = [...rejectChips, rejectText.trim()].filter(Boolean).join("; ");
+    await setApproval(rejecting, false, reason || undefined);
+    setRejecting(null);
+    setRejectChips([]);
+    setRejectText("");
+  };
+
+  const saveEdit = async () => {
+    if (!preview || editText == null) return;
+    setBusyId(preview.id);
+    try {
+      await updateTopic.mutateAsync({ id: preview.id, generated_content: editText });
+      await refetch();
+      setPreview({ ...preview, generated_content: editText });
+      setEditText(null);
+      toast({ title: "Tekst opgeslagen" });
+    } catch (err) {
+      toast({ title: "Opslaan mislukt", description: getErrorMessage(err), variant: "destructive" });
     }
     setBusyId(null);
   };
@@ -125,7 +157,17 @@ export default function Wachtrij() {
 
   const Avatar = ({ t }: { t: MmTopic }) => {
     const Icon = platformIcons[t.platform] || FileText;
-    return <span className="flex items-center gap-1 text-[11px] text-muted-foreground"><Icon className="h-3 w-3" /> {t.platform}{clientFor(t) ? ` · ${clientFor(t)!.name}` : ""}</span>;
+    return (
+      <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
+        <Icon className="h-3 w-3" /> {t.platform}{clientFor(t) ? ` · ${clientFor(t)!.name}` : ""}
+        {t.angle && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 font-normal">{t.angle}</Badge>}
+        {t.quality_score != null && (
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 font-normal ${t.quality_score >= 75 ? "text-primary border-primary/40" : "text-destructive border-destructive/40"}`} title={t.quality_notes || undefined}>
+            {t.quality_score}
+          </Badge>
+        )}
+      </span>
+    );
   };
 
   return (
@@ -156,7 +198,7 @@ export default function Wachtrij() {
                 </div>
                 <div className="flex gap-1">
                   <ActionBtn label="Goedkeuren" tone="success" loading={busyId === t.id} onClick={() => setApproval(t, true)}><CheckCircle2 className="h-3.5 w-3.5" /></ActionBtn>
-                  <ActionBtn label="Afkeuren" tone="danger" onClick={() => setApproval(t, false)}><XCircle className="h-3.5 w-3.5" /></ActionBtn>
+                  <ActionBtn label="Afkeuren (met reden)" tone="danger" onClick={() => setRejecting(t)}><XCircle className="h-3.5 w-3.5" /></ActionBtn>
                   <ActionBtn label="Nieuw beeld" loading={regenId === t.id} onClick={() => regenerate(t)}><RefreshCw className="h-3.5 w-3.5" /></ActionBtn>
                   <ActionBtn label="Bekijk" onClick={() => setPreview(t)}><Eye className="h-3.5 w-3.5" /></ActionBtn>
                 </div>
@@ -229,11 +271,62 @@ export default function Wachtrij() {
         </div>
       </div>
 
-      <Dialog open={!!preview} onOpenChange={() => setPreview(null)}>
+      {/* Preview + inline bewerken */}
+      <Dialog open={!!preview} onOpenChange={() => { setPreview(null); setEditText(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle className="text-base">{preview?.hook}</DialogTitle></DialogHeader>
+          {preview?.quality_notes && (
+            <p className="text-[11px] text-muted-foreground -mt-1">Redactie ({preview.quality_score ?? "?"}/100): {preview.quality_notes}</p>
+          )}
           {preview?.media_url && <img src={preview.media_url} alt="" className="w-full rounded-lg border border-border" />}
-          <div className="whitespace-pre-wrap text-sm text-foreground leading-relaxed max-h-80 overflow-y-auto">{preview?.generated_content}</div>
+          {editText == null ? (
+            <div className="whitespace-pre-wrap text-sm text-foreground leading-relaxed max-h-80 overflow-y-auto">{preview?.generated_content}</div>
+          ) : (
+            <>
+              <Textarea rows={10} value={editText} onChange={(e) => setEditText(e.target.value)} className="text-sm" />
+              <p className="text-[11px] text-muted-foreground">{editText.length} tekens{preview?.platform === "x" ? " (X: max 280)" : ""}</p>
+            </>
+          )}
+          <div className="flex gap-2">
+            {editText == null ? (
+              <Button variant="outline" size="sm" onClick={() => setEditText(preview?.generated_content || "")}>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" /> Bewerken
+              </Button>
+            ) : (
+              <>
+                <Button size="sm" disabled={busyId === preview?.id} onClick={saveEdit}>
+                  {busyId === preview?.id ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />} Opslaan
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditText(null)}>Annuleren</Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Afkeuren met reden — reden gaat als les mee naar volgende generaties */}
+      <Dialog open={!!rejecting} onOpenChange={() => setRejecting(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="text-base">Waarom keur je dit af?</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">De reden wordt onthouden en gebruikt om volgende posts beter te maken.</p>
+          <div className="flex flex-wrap gap-1.5">
+            {REJECT_REASONS.map((r) => {
+              const on = rejectChips.includes(r);
+              return (
+                <button key={r} onClick={() => setRejectChips((p) => (on ? p.filter((x) => x !== r) : [...p, r]))}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${on ? "bg-destructive/10 border-destructive/40 text-destructive" : "border-border text-muted-foreground hover:bg-accent"}`}>
+                  {r}
+                </button>
+              );
+            })}
+          </div>
+          <Textarea rows={2} value={rejectText} onChange={(e) => setRejectText(e.target.value)} placeholder="Eigen toelichting (optioneel)..." className="text-sm" />
+          <div className="flex gap-2 justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setRejecting(null)}>Annuleren</Button>
+            <Button variant="destructive" size="sm" disabled={busyId === rejecting?.id} onClick={confirmReject}>
+              {busyId === rejecting?.id ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5 mr-1.5" />} Afkeuren
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

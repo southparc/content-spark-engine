@@ -6,7 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, Loader2, ImageIcon, ChevronRight } from "lucide-react";
+import { Save, Loader2, ImageIcon, ChevronRight, Cpu } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { useSettings, useUpdateSetting } from "@/hooks/use-marketing-data";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +72,23 @@ export default function Instellingen() {
           </CardContent>
         </Card>
       </Link>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2"><Cpu className="h-5 w-5 text-primary" /> Tekstmodel</CardTitle>
+          <CardDescription>Het AI-model voor onderwerpen, posts en de redactie-check. Geldt voor alle klanten.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select value={local.text_model || "gpt-4.1"} onValueChange={(v) => update("text_model", v)}>
+            <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4.1">gpt-4.1 — beste kwaliteit (aanbevolen)</SelectItem>
+              <SelectItem value="gpt-4.1-mini">gpt-4.1-mini — sneller en goedkoper</SelectItem>
+              <SelectItem value="gpt-4o">gpt-4o — vorige standaard</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
