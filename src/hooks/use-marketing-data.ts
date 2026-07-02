@@ -83,6 +83,10 @@ export interface MmTopic {
   angle: string | null;
   quality_score: number | null;
   quality_notes: string | null;
+  // Fase 3: engagement-terugkoppeling uit Buffer
+  buffer_post_id: string | null;
+  engagement: Record<string, number> | null;
+  engagement_synced_at: string | null;
   posted_at: string | null;
   created_at: string;
 }

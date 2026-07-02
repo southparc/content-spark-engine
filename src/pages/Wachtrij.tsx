@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Linkedin, Twitter, Instagram, FileText, CheckCircle2, XCircle, RefreshCw,
-  Loader2, Eye, Send, Clock, CircleDot, Pencil, Save,
+  Loader2, Eye, Send, Clock, CircleDot, Pencil, Save, Copy,
 } from "lucide-react";
 import {
   useAllTopics, useCampaigns, useClients, useSettings, useUpdateTopic, type MmTopic,
@@ -114,6 +114,35 @@ export default function Wachtrij() {
     setBusyId(null);
   };
 
+  // A/B-variant: zelfde hook, verse tekst via de v2-motor; belandt naast het origineel in Te beoordelen
+  const [variantId, setVariantId] = useState<string | null>(null);
+  const makeVariant = async (t: MmTopic) => {
+    setVariantId(t.id);
+    try {
+      const client = clientFor(t);
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: {
+          client_id: client?.id, platform: t.platform, angle: t.angle,
+          hook: t.hook, campaign_theme: campaignFor(t)?.theme || "", content_format: t.content_format || "post",
+        },
+      });
+      if (error) throw new Error(error.message);
+      const res = data as { content?: string; quality_score?: number | null; quality_notes?: string | null; error?: string };
+      if (!res?.content) throw new Error(res?.error || "Geen content terug.");
+      const { error: insErr } = await supabase.from("mm_topics").insert({
+        campaign_id: t.campaign_id, hook: t.hook, platform: t.platform, angle: t.angle,
+        generated_content: res.content, quality_score: res.quality_score ?? null, quality_notes: res.quality_notes ?? null,
+        media_url: t.media_url, variant_of: t.id,
+      });
+      if (insErr) throw new Error(insErr.message);
+      await refetch();
+      toast({ title: "A/B-variant gemaakt", description: "Staat naast het origineel in Te beoordelen — kies de beste." });
+    } catch (err) {
+      toast({ title: "Variant mislukt", description: getErrorMessage(err), variant: "destructive" });
+    }
+    setVariantId(null);
+  };
+
   const regenerate = async (t: MmTopic) => {
     setRegenId(t.id);
     try {
@@ -166,6 +195,7 @@ export default function Wachtrij() {
             {t.quality_score}
           </Badge>
         )}
+        {t.variant_of && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal">variant</Badge>}
       </span>
     );
   };
@@ -200,6 +230,7 @@ export default function Wachtrij() {
                   <ActionBtn label="Goedkeuren" tone="success" loading={busyId === t.id} onClick={() => setApproval(t, true)}><CheckCircle2 className="h-3.5 w-3.5" /></ActionBtn>
                   <ActionBtn label="Afkeuren (met reden)" tone="danger" onClick={() => setRejecting(t)}><XCircle className="h-3.5 w-3.5" /></ActionBtn>
                   <ActionBtn label="Nieuw beeld" loading={regenId === t.id} onClick={() => regenerate(t)}><RefreshCw className="h-3.5 w-3.5" /></ActionBtn>
+                  {!t.variant_of && <ActionBtn label="A/B-variant maken" loading={variantId === t.id} onClick={() => makeVariant(t)}><Copy className="h-3.5 w-3.5" /></ActionBtn>}
                   <ActionBtn label="Bekijk" onClick={() => setPreview(t)}><Eye className="h-3.5 w-3.5" /></ActionBtn>
                 </div>
               </CardContent>

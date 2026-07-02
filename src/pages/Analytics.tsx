@@ -78,7 +78,25 @@ export default function Analytics() {
       };
     });
 
-    return { total, posted, approved, withContent, byPlatform, byClient, weeklyData, campaignCount: allowedCampaignIds.size };
+    // Engagement per invalshoek (uit de dagelijkse Buffer-sync)
+    const engSum = (e: Record<string, number> | null) =>
+      e ? (e.reactions ?? 0) + (e.comments ?? 0) + (e.shares ?? 0) + (e.reposts ?? 0) + (e.clicks ?? 0) + (e.likes ?? 0) : 0;
+    const withEngagement = topics.filter((t) => t.posted_at && t.engagement);
+    const totalImpressions = withEngagement.reduce((s, t) => s + (t.engagement?.impressions ?? t.engagement?.reach ?? t.engagement?.views ?? 0), 0);
+    const totalInteractions = withEngagement.reduce((s, t) => s + engSum(t.engagement), 0);
+    const angleMap = new Map<string, { posts: number; interactions: number }>();
+    for (const t of withEngagement) {
+      if (!t.angle) continue;
+      const cur = angleMap.get(t.angle) ?? { posts: 0, interactions: 0 };
+      cur.posts += 1;
+      cur.interactions += engSum(t.engagement);
+      angleMap.set(t.angle, cur);
+    }
+    const byAngle = [...angleMap.entries()]
+      .map(([angle, v]) => ({ angle, posts: v.posts, avg: v.posts ? Math.round((v.interactions / v.posts) * 10) / 10 : 0 }))
+      .sort((a, b) => b.avg - a.avg);
+
+    return { total, posted, approved, withContent, byPlatform, byClient, weeklyData, campaignCount: allowedCampaignIds.size, byAngle, totalImpressions, totalInteractions, syncedPosts: withEngagement.length };
   }, [allTopics, campaigns, clients, activeClientId]);
 
   const pieData = stats?.byPlatform.map((p) => ({
@@ -108,10 +126,40 @@ export default function Analytics() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={FileText} label="Totaal topics" value={stats.total} sub={`${stats.campaignCount} campagnes`} />
-            <StatCard icon={CheckCircle2} label="Content gegenereerd" value={stats.withContent} sub={`${Math.round((stats.withContent / Math.max(stats.total, 1)) * 100)}% van totaal`} />
             <StatCard icon={Send} label="Gepubliceerd" value={stats.posted} sub={`${Math.round((stats.posted / Math.max(stats.total, 1)) * 100)}% van totaal`} />
-            <StatCard icon={TrendingUp} label="Goedgekeurd" value={stats.approved} sub="Klaar voor content" />
+            <StatCard icon={TrendingUp} label="Weergaven" value={stats.totalImpressions} sub={`Over ${stats.syncedPosts} gesyncte posts`} />
+            <StatCard icon={CheckCircle2} label="Interacties" value={stats.totalInteractions} sub="Reacties, clicks, shares" />
           </div>
+
+          {stats.byAngle.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Prestaties per invalshoek</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Gemiddelde interacties per post, uit de dagelijkse Buffer-sync. De generator geeft de best presterende invalshoeken automatisch meer gewicht.
+                </p>
+                <div className="space-y-2">
+                  {stats.byAngle.map((a, i) => {
+                    const max = Math.max(...stats.byAngle.map((x) => x.avg), 1);
+                    return (
+                      <div key={a.angle} className="flex items-center gap-3 text-sm">
+                        <span className="w-24 shrink-0 font-medium text-foreground">{a.angle}</span>
+                        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.round((a.avg / max) * 100)}%` }} />
+                        </div>
+                        <span className="w-32 shrink-0 text-right text-muted-foreground text-xs">
+                          {a.avg} gem. · {a.posts} post{a.posts === 1 ? "" : "s"}
+                        </span>
+                        {i === 0 && a.avg > 0 && <Badge variant="secondary" className="text-[10px] shrink-0">beste</Badge>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
