@@ -17,6 +17,7 @@ import RecurringCampaigns from "@/pages/RecurringCampaigns";
 import Maken from "@/pages/Maken";
 import Wachtrij from "@/pages/Wachtrij";
 import Inzicht from "@/pages/Inzicht";
+import Help from "@/pages/Help";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="/instellingen/prompts" element={<InstellingenPrompts />} />
                 <Route path="/instellingen/klanten" element={<InstellingenKlanten />} />
                 <Route path="/instellingen/beeld" element={<InstellingenBeeld />} />
+                <Route path="/help" element={<Help />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </DashboardLayout>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Sparkles, Settings, BarChart3, RefreshCw, ListChecks, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Sparkles, Settings, BarChart3, RefreshCw, ListChecks, LogOut, HelpCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/use-auth";
 import { useAllTopics, useCampaigns } from "@/hooks/use-marketing-data";
@@ -62,6 +62,7 @@ export function AppSidebar() {
         { title: "Klanten", url: "/klanten", icon: Users },
         { title: "Inzicht", url: "/inzicht", icon: BarChart3 },
         { title: "Instellingen", url: "/instellingen", icon: Settings },
+        { title: "Help", url: "/help", icon: HelpCircle },
       ],
     },
   ];
